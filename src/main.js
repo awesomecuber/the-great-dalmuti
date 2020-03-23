@@ -6,7 +6,7 @@ import io from 'socket.io-client'
 Vue.config.productionTip = false
 Vue.prototype.$socket = io(process.env.NODE_ENV === 'production'
                             ? 'fuckmyass.com'
-                            : 'http://localhost:3000')
+                            : 'http://localhost:3500')
 Vue.prototype.$word = "arst"
 
 new Vue({
