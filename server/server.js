@@ -17,7 +17,7 @@ io.on("connection", socket => {
         if (rooms.filter(room => roomName === room.name).length === 0) {
             rooms.push({
                 name: roomName,
-                count: 0
+                users: []
             })
             io.emit('room-update', rooms)
         }
@@ -31,25 +31,23 @@ io.on("connection", socket => {
         }
     })
 
-    socket.on('user-joined', roomName => {
+    socket.on('user-joined', (roomName, username) => {
         rooms.forEach(room => {
-            if (room.name === roomName) room.count++
+            if (room.name === roomName) room.users.push(username)
         })
-        socket.join(roomName)
-        socket.to(roomName).emit('user-join')
         io.emit('room-update', rooms)
     })
 
-    socket.on('user-left', roomName => {
+    socket.on('user-left', (roomName, username) => {
         rooms.forEach(room => {
-            if (room.name === roomName) room.count--
+            if (room.name === roomName) {
+                room.users = room.users.filter(user => user !== username)
+            }
         })
-        socket.leave(roomName)
-        socket.to(roomName).emit('user-leave')
         io.emit('room-update', rooms)
     })
 
-    socket.on('message-sent', (roomName, message) => {
-        socket.to(roomName).broadcast.emit('new-message', message)
+    socket.on('request-rooms', () => {
+        socket.emit('room-update', rooms)
     })
 })

@@ -2,79 +2,67 @@
   <div class="room">
     <button @click="leave">Back to home</button>
     <h1>Room: {{ $route.params.room }}</h1>
-    <p v-for="(message, index) in messages" :key="index" v-html="message"></p>
-    <form @submit.prevent="send">
-      <input type="text" v-model="message">
-      <input type="submit" value="send">
+    <p v-for="(user, index) in users" :key="index">{{ user === name ? user + ' (you!)' : user }}</p>
+    <form v-if="!loggedIn" @submit.prevent="nick">
+      <input type="text" v-model="nickInput">
+      <input type="submit" value="login">
     </form>
   </div>
 </template>
 
 <script>
-import io from 'socket.io-client'
-
 export default {
   name: 'Room',
   data() {
     return {
-      socket: null,
       rooms: [],
-      messages: [],
-      message: ''
+      users: [],
+      nickInput: '',
+      name: '',
+      loggedIn: false
     }
   },
-  created() {
-    this.socket = io(process.env.NODE_ENV === 'production'
-                      ? 'https://murmuring-basin-34584.herokuapp.com'
-                      : 'http://localhost:3000')
-  },
   mounted() {
-    this.socket.on('room-update', rooms => {
+    this.$socket.removeAllListeners()
+
+    this.$socket.on('room-update', rooms => {
       this.rooms = rooms.map(room => room.name) // i only care about names
+      rooms.forEach(room => {
+        if (room.name === this.$route.params.room) this.users = room.users
+      })
       // checking if current room was deleted
       if (!this.rooms.includes(this.$route.params.room)) {
         this.leave()
       }
     })
-    
-    this.socket.on('new-message', message => {
-      this.messages.push('<b>someone:</b> ' + message)
-    })
-
-    this.socket.on('user-join', () => {
-      this.messages.push('<b>someone joined</b>')
-    })
-
-    this.socket.on('user-leave', () => {
-      this.messages.push('<b>someone left</b>')
-    })
-
-    this.socket.emit('user-joined', this.$route.params.room)
 
     window.onbeforeunload = () => {
-      this.socket.emit('user-left', this.$route.params.room)
+      this.$socket.emit('user-left', this.$route.params.room)
     }
+
+    this.$socket.emit('request-rooms')
   },
   methods: {
-    send() {
-      if (this.message != '') {
-        this.messages.push('<b>you: </b>' + this.message)
-        this.socket.emit('message-sent', this.$route.params.room, this.message)
-        this.message = ''
+    nick() {
+      if (this.nickInput !== '') {
+        this.name = this.nickInput
+        this.loggedIn = true
+        this.$socket.emit('user-joined', this.$route.params.room, this.name)
       }
     },
     leave() {
-      this.socket.emit('user-left', this.$route.params.room)
+      if (this.loggedIn) {
+        this.$socket.emit('user-left', this.$route.params.room, this.name)
+      }
       this.$router.push('/home')
     }
   },
   watch: {
     $route(to, from) { // might be a problem? idk when exactly this is triggered
-      this.socket.emit('user-left', from.params.room)
-      if (this.rooms.includes(to.params.room)) {
-        this.socket.emit('user-joined', to.params.room)
-        this.messages = []
-      } else {
+      if (this.loggedIn) {
+        this.$socket.emit('user-left', from.params.room, this.name)
+      }
+      if (!this.rooms.includes(to.params.room)) {
         this.$router.push('/home')
       }
     }
