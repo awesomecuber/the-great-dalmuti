@@ -83,6 +83,10 @@ io.on("connection", socket => {
         socket.emit('room-update', rooms)
     })
 
+    socket.on('request-socketid', () => {
+        socket.emit('socket-id', socket.id)
+    })
+
     socket.on('disconnect', () => {
         rooms.forEach(room => {
             room.users = room.users.filter(user => user.socketID !== socket.id)
