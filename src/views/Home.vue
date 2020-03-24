@@ -1,5 +1,6 @@
 <template>
   <div class="home">
+    <center>
     <h3>Rooms:</h3>
     <div class="room" v-for="(room, index) in rooms" :key="index">
       <button @click="join(room.name)">{{ room.name }}</button>
@@ -10,6 +11,7 @@
       <input type="text" v-model="newRoom">
       <input type="submit" value="create room">
     </form>
+    </center>
   </div>
 </template>
 
