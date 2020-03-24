@@ -137,20 +137,20 @@ export default {
       name: '',
       loggedIn: false,
       ready: false,
-      gameStarted: false,
+      gameStarted: false
     }
   },
   mounted() {
     this.$socket.removeAllListeners()
 
-    this.$socket.on('room-update', (rooms) => {
-      this.rooms = rooms.map((room) => room.name) // i only care about room names
-      rooms.forEach((room) => {
+    this.$socket.on('room-update', rooms => {
+      this.rooms = rooms.map(room => room.name) // i only care about room names
+      rooms.forEach(room => {
         if (room.name === this.$route.params.room) {
           this.users = room.users // saving users
 
           // checking if users no longer includes current person (server was reset in room yo)
-          if (!this.users.map((user) => user.username).includes(this.name)) {
+          if (!this.users.map(user => user.username).includes(this.name)) {
             this.nickInput = ''
             this.name = ''
             this.loggedIn = false
@@ -161,8 +161,8 @@ export default {
           if (this.users.length >= 4) {
             let shouldStart = true
             this.users
-              .map((user) => user.ready)
-              .forEach((ready) => {
+              .map(user => user.ready)
+              .forEach(ready => {
                 if (!ready) {
                   shouldStart = false
                 }
@@ -188,11 +188,11 @@ export default {
 
     this.$socket.emit('request-rooms')
 
-    this.$socket.on('socketid', (socketID) => {
+    this.$socket.on('socketid', socketID => {
       // if socket is already in list of rooms, be that guy (for vue reloading)
-      this.users.forEach((user) => {
+      this.users.forEach(user => {
         if (user.socketID === socketID) {
-          this.name === user.username
+          this.name = user.username
           this.loggedIn = true
         }
       })
@@ -220,7 +220,7 @@ export default {
         this.$socket.emit('user-left', this.$route.params.room)
       }
       this.$router.push('/home')
-    },
+    }
   },
   watch: {
     $route(to, from) {
@@ -231,8 +231,8 @@ export default {
       if (!this.rooms.includes(to.params.room)) {
         this.$router.push('/home')
       }
-    },
-  },
+    }
+  }
 }
 </script>
 

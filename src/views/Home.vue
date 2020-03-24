@@ -1,22 +1,21 @@
 <template>
   <div class="home">
     <center>
-    <h3>Rooms:</h3>
-    <div class="room" v-for="(room, index) in rooms" :key="index">
-      <button @click="join(room.name)">{{ room.name }}</button>
-      <button @click="remove(room.name)">remove!</button>
-      <p>online: {{ room.users.length }}</p>
-    </div>
-    <form @submit.prevent="create">
-      <input type="text" v-model="newRoom">
-      <input type="submit" value="create room">
-    </form>
+      <h3>Rooms:</h3>
+      <div class="room" v-for="(room, index) in rooms" :key="index">
+        <button @click="join(room.name)">{{ room.name }}</button>
+        <button @click="remove(room.name)">remove!</button>
+        <p>online: {{ room.users.length }}</p>
+      </div>
+      <form @submit.prevent="create">
+        <input type="text" v-model="newRoom" />
+        <input type="submit" value="create room" />
+      </form>
     </center>
   </div>
 </template>
 
 <script>
-
 export default {
   name: 'Home',
   data() {
