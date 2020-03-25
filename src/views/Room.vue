@@ -1,7 +1,7 @@
 <template>
   <div class="room">
     <center>
-      <h1 style="margin-bottom: 0px;">The Great Dalmuti</h1>
+      <h1 style="margin-bottom: 0px; margin-top: 0px;">The Great Dalmuti</h1>
       <h2 style="margin: 0px;">
         Room: {{ $route.params.room
         }}<span v-if="loggedIn"> | Your Name: {{ name }}</span>
@@ -42,13 +42,7 @@
         <table class="hand">
           <tr>
             <td>
-              <table class="played">
-                <tr>
-                  <td class="card" style="background-color: indianred;">
-                    <h1>12</h1>
-                  </td>
-                </tr>
-              </table>
+              <Card number="12" large="true"></Card>
             </td>
           </tr>
           <tr>
@@ -61,20 +55,18 @@
         </table>
 
         <h3>Your hand:</h3>
-        <table class="played">
-          <tr>
-            <td class="card" style="background-color: gold;">1</td>
-            <td class="card" style="background-color: aqua;">2</td>
-            <td class="card" style="background-color: lime;">4</td>
-            <td class="card" style="background-color: lime;">4</td>
-            <td class="card" style="background-color: pink;">7</td>
-            <td class="card" style="background-color: royalblue;">9</td>
-            <td class="card" style="background-color: indianred;">12</td>
-            <td class="card" style="background-color: indianred;">12</td>
-            <td class="card" style="background-color: indianred;">12</td>
-            <td class="card" style="background-color: indianred;">12</td>
-          </tr>
-        </table>
+        <div class="cards">
+          <Card number="1"></Card>
+          <Card number="2"></Card>
+          <Card number="4"></Card>
+          <Card number="4"></Card>
+          <Card number="7"></Card>
+          <Card number="9"></Card>
+          <Card number="12"></Card>
+          <Card number="12"></Card>
+          <Card number="12"></Card>
+          <Card number="12"></Card>
+        </div>
 
         <br />
         <br />
@@ -126,6 +118,8 @@
 </template>
 
 <script>
+import Card from '../components/Card.vue'
+
 export default {
   name: 'Room',
   data() {
@@ -138,6 +132,9 @@ export default {
       ready: false,
       gameStarted: false
     }
+  },
+  components: {
+    Card
   },
   mounted() {
     this.$socket.removeAllListeners()
@@ -261,10 +258,10 @@ table.hand {
   border: 2px solid black;
 }
 
-th.card,
-td.card {
-  padding: 15px;
-  border: 2px solid black;
+.cards {
+  display: flex;
+  justify-content: center;
+  width: 70%;
 }
 
 .box {
