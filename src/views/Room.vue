@@ -2,7 +2,10 @@
   <div class="room">
     <center>
       <h1 style="margin-bottom: 0px;">The Great Dalmuti</h1>
-      <h2 style="margin: 0px;">Room: {{ $route.params.room }}</h2>
+      <h2 style="margin: 0px;">
+        Room: {{ $route.params.room
+        }}<span v-if="loggedIn"> | Your Name: {{ name }}</span>
+      </h2>
       <hr />
       <div v-if="!gameStarted">
         <button @click="leave">Back to home</button>
@@ -108,14 +111,10 @@
               <div class="margin">
                 <p><b>Standings:</b></p>
                 <p>
-                  <b>1. </b><tt>GD</tt> Nico [<b>10</b>] <br />
-                  <b>2. </b><tt>LD</tt> frogyfro [<b>10</b>] <br />
-                  <b>3. </b><tt>M</tt> Shadow [<b>10</b>] <br />
-                  <b>4. </b><tt>M</tt> Illumina [<b>10</b>] <br />
-                  <b>5. </b><tt>M</tt> LordGeek101 [<b>10</b>] <br />
-                  <b>6. </b><tt>M</tt> dtm [<b>10</b>] <br />
-                  <b>7. </b><tt>LP</tt> BlueCrystal004 [<b>10</b>] <br />
-                  <b>8. </b><tt>GP</tt> aidanbh123 [<b>10</b>]
+                  <span v-for="(user, index) in users" :key="index">
+                    <b>{{ index + 1 }}. </b><tt>{{ getRole(index) }}</tt>
+                    {{ user.username }} [<b>10</b>] <br />
+                  </span>
                 </p>
               </div>
             </div>
@@ -201,6 +200,19 @@ export default {
     this.$socket.emit('request-socketid')
   },
   methods: {
+    getRole(index) {
+      if (index === 0) {
+        return 'GD'
+      } else if (index === 1) {
+        return 'LD'
+      } else if (index === this.users.length - 2) {
+        return 'LP'
+      } else if (index === this.users.length - 1) {
+        return 'GP'
+      } else {
+        return 'M'
+      }
+    },
     nick() {
       if (this.nickInput !== '' && !this.users.includes(this.nickInput)) {
         this.name = this.nickInput
