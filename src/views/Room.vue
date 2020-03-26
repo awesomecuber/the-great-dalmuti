@@ -42,7 +42,7 @@
         <table class="hand">
           <tr>
             <td>
-              <Card number="12" large="true"></Card>
+              <Card :number="12" :large="true"></Card>
             </td>
           </tr>
           <tr>
@@ -56,16 +56,7 @@
 
         <h3>Your hand:</h3>
         <div class="cards">
-          <Card number="1"></Card>
-          <Card number="2"></Card>
-          <Card number="4"></Card>
-          <Card number="4"></Card>
-          <Card number="7"></Card>
-          <Card number="9"></Card>
-          <Card number="12"></Card>
-          <Card number="12"></Card>
-          <Card number="12"></Card>
-          <Card number="12"></Card>
+          <Card v-for="(card, index) in cards" :key="index" :number="card" />
         </div>
 
         <br />
@@ -105,7 +96,8 @@
                 <p>
                   <span v-for="(user, index) in users" :key="index">
                     <b>{{ index + 1 }}. </b><tt>{{ getRole(index) }}</tt>
-                    {{ user.username }} [<b>10</b>] <br />
+                    {{ user.username }} [<b>{{ user.cards.length }}</b
+                    >] <i v-if="user.left"> (user left)</i><br />
                   </span>
                 </p>
               </div>
@@ -125,9 +117,10 @@ export default {
   data() {
     return {
       rooms: [],
-      users: [], // socketID: string, username: string, ready: boolean
+      users: [], // socketID: string, username: string, ready: boolean, cards: string (i think)
       nickInput: '',
       name: '',
+      cards: [],
       loggedIn: false,
       ready: false,
       gameStarted: false
@@ -145,31 +138,25 @@ export default {
         if (room.name === this.$route.params.room) {
           this.users = room.users // saving users
 
-          // checking if users no longer includes current person (server was reset in room yo)
-          if (!this.users.map(user => user.username).includes(this.name)) {
-            this.nickInput = ''
-            this.name = ''
-            this.loggedIn = false
-            this.ready = false
-          }
-
-          // check if start
-          if (this.users.length >= 4) {
-            let shouldStart = true
-            this.users
-              .map(user => user.ready)
-              .forEach(ready => {
-                if (!ready) {
-                  shouldStart = false
-                }
-              })
-            if (shouldStart) {
-              // i need to emit something
-              this.gameStarted = true
-            }
-          }
+          this.gameStarted = room.started // updating game state
         }
       })
+
+      // checking if users no longer includes current person (server was reset in room yo)
+      if (!this.users.map(user => user.username).includes(this.name)) {
+        this.nickInput = ''
+        this.name = ''
+        this.loggedIn = false
+        this.ready = false
+      }
+
+      // update cards
+      this.users.forEach(user => {
+        if (user.username === this.name) {
+          this.cards = user.cards
+        }
+      })
+
       // checking if current room was deleted
       if (!this.rooms.includes(this.$route.params.room)) {
         this.leave()
@@ -195,6 +182,8 @@ export default {
     })
     // i only do this because for some reason, this.$socket.id is undefined
     this.$socket.emit('request-socketid')
+
+    this.$socket.emit('request-rooms') // megadumb
   },
   methods: {
     getRole(index) {

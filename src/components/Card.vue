@@ -1,5 +1,5 @@
 <template>
-  <div class="card" :style="[colorStyle, sizeStyle]">{{ number }}</div>
+  <div class="card" :style="[colorStyle, sizeStyle]">{{ display }}</div>
 </template>
 
 <script>
@@ -7,25 +7,7 @@ export default {
   name: 'Card',
   props: {
     number: {
-      validator: function(value) {
-        return (
-          [
-            '1',
-            '2',
-            '3',
-            '4',
-            '5',
-            '6',
-            '7',
-            '8',
-            '9',
-            '10',
-            '11',
-            '12',
-            'J'
-          ].indexOf(value) !== -1
-        )
-      },
+      validator: Number,
       required: true
     },
     large: {
@@ -34,47 +16,59 @@ export default {
     }
   },
   computed: {
+    display: function() {
+      if (this.number === 99) {
+        return 'J'
+      }
+      return this.number.toString()
+    },
     colorStyle: function() {
+      if (this.number === 99) {
+        return {
+          backgroundColor: 'black',
+          color: 'white'
+        }
+      }
       let color = 'white'
       switch (this.number) {
-        case '1':
+        case 1:
           color = 'gold'
           break
-        case '2':
-          color = 'aqua'
+        case 2:
+          color = 'tomato'
           break
-        case '3':
-          // color = 'white'
+        case 3:
+          color = 'mediumseagreen'
           break
-        case '4':
-          color = 'lime'
+        case 4:
+          color = 'violet'
           break
-        case '5':
-          // color = 'white'
+        case 5:
+          color = 'tan'
           break
-        case '6':
-          // color = 'white'
+        case 6:
+          color = 'rebeccapurple'
           break
-        case '7':
+        case 7:
           color = 'pink'
           break
-        case '8':
-          // color = 'white'
+        case 8:
+          color = 'skyblue'
           break
-        case '9':
-          color = 'royalblue'
+        case 9:
+          color = 'orange'
           break
-        case '10':
-          // color = 'white'
+        case 10:
+          color = 'brown'
           break
-        case '11':
-          // color = 'white'
+        case 11:
+          color = 'lightslategray'
           break
-        case '12':
+        case 12:
           color = 'indianred'
           break
-        case 'J':
-          // color = 'white'
+        case 99:
+          color = 'lightgray'
           break
       }
       return {
