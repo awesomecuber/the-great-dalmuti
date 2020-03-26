@@ -23,13 +23,7 @@ interface Room {
   users: User[]
 }
 
-let rooms: Room[] = [
-  {
-    name: 'yo',
-    started: false,
-    users: []
-  }
-]
+let rooms: Room[] = []
 
 io.on('connection', socket => {
   socket.emit('room-update', rooms)
@@ -67,7 +61,7 @@ io.on('connection', socket => {
     })
     io.emit('room-update', rooms)
   })
-  // if game has started, then property "disconnected" should be set to true in player rather than kick them out
+
   socket.on('user-left', (roomName: string) => {
     rooms.forEach(room => {
       if (room.name === roomName) {
@@ -155,22 +149,22 @@ io.on('connection', socket => {
     socket.emit('socketid', socket.id)
   })
 
-  socket.on('disconnect', () => {
-    rooms.forEach(room => {
-      rooms.forEach(room => {
-        if (room.started) {
-          room.users.forEach(user => {
-            if (user.socketID === socket.id) {
-              user.left = true
-            }
-          })
-        } else {
-          room.users = room.users.filter(user => user.socketID !== socket.id)
-        }
-      })
-    })
-    io.emit('room-update', rooms)
-  })
+  // socket.on('disconnect', () => {
+  //   rooms.forEach(room => {
+  //     rooms.forEach(room => {
+  //       if (room.started) {
+  //         room.users.forEach(user => {
+  //           if (user.socketID === socket.id) {
+  //             user.left = true
+  //           }
+  //         })
+  //       } else {
+  //         room.users = room.users.filter(user => user.socketID !== socket.id)
+  //       }
+  //     })
+  //   })
+  //   io.emit('room-update', rooms)
+  // })
 })
 
 function shuffle(a: any[]) {

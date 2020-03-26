@@ -44,7 +44,7 @@ export default {
       }
     },
     join(room) {
-      this.$router.push('/room/' + room)
+      this.$router.push('/room/' + room + '/lobby')
     },
     remove(room) {
       this.$socket.emit('room-removed', room)
