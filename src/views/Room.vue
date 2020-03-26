@@ -178,53 +178,8 @@ export default {
 </script>
 
 <style scoped>
-p.small {
-  line-height: 1.15;
-}
-
-table.played {
-  border: 5px solid black;
-}
-
-table.hand {
-  border: 2px solid black;
-}
-
-.cards {
-  display: flex;
-  justify-content: center;
-  width: 70%;
-}
-
-.box {
-  display: flex;
-  justify-content: center;
-}
-
-.margin {
-  margin: 35px;
-}
-
 body {
   background-color: whitesmoke;
   font-family: sans-serif;
-}
-
-.alignleft {
-  float: left;
-  text-align: left;
-  width: 33.33333%;
-}
-
-.aligncenter {
-  float: left;
-  text-align: center;
-  width: 33.33333%;
-}
-
-.alignright {
-  float: left;
-  text-align: right;
-  width: 33.33333%;
 }
 </style>
