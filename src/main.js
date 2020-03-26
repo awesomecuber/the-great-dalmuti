@@ -7,7 +7,7 @@ Vue.config.productionTip = false
 let socket = io(
   process.env.NODE_ENV === 'production'
     ? 'fuckmyass.com'
-    : 'http://localhost:3550'
+    : 'http://localhost:3560'
 )
 
 Vue.prototype.$socket = socket

@@ -35,29 +35,12 @@
         </form>
       </div>
       <div v-else>
-        <p style="font-size: 20px; margin: 5px 0px;">
-          It is <b>BlueCrystal004</b>'s turn.
-        </p>
-        <br />
-        <table class="hand">
-          <tr>
-            <td>
-              <Card :number="12" :large="true"></Card>
-            </td>
-          </tr>
-          <tr>
-            <td>
-              <center>
-                <p style="font-size: 20px; margin: 5px 0px;">x5</p>
-              </center>
-            </td>
-          </tr>
-        </table>
-
-        <h3>Your hand:</h3>
-        <div class="cards">
-          <Card v-for="(card, index) in cards" :key="index" :number="card" />
-        </div>
+        <play-area
+          turn="BlueCrystal004"
+          :currentCard="12"
+          :currentCardCount="5"
+          :playerCards="cards"
+        />
 
         <br />
         <br />
@@ -110,7 +93,7 @@
 </template>
 
 <script>
-import Card from '../components/Card.vue'
+import PlayArea from '../components/PlayArea.vue'
 
 export default {
   name: 'Room',
@@ -127,7 +110,7 @@ export default {
     }
   },
   components: {
-    Card
+    PlayArea
   },
   mounted() {
     this.$socket.removeAllListeners()

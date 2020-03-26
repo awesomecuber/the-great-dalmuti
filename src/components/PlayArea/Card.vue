@@ -7,7 +7,7 @@ export default {
   name: 'Card',
   props: {
     number: {
-      validator: Number,
+      type: Number,
       required: true
     },
     large: {
