@@ -1,12 +1,26 @@
 <template>
-  <div class="card" :style="[colorStyle, sizeStyle]">{{ display }}</div>
+  <div
+    @click="selected = large ? false : !selected"
+    class="card"
+    :style="[colorStyle, sizeStyle, selectedColorStyle]"
+  >
+    {{ display }}
+  </div>
 </template>
 
 <script>
 export default {
   name: 'Card',
+  data() {
+    return {
+      selected: false
+    }
+  },
   props: {
-    number: Number,
+    number: {
+      type: Number,
+      default: 0 // represents no card
+    },
     large: {
       type: Boolean,
       default: false
@@ -17,13 +31,15 @@ export default {
       if (this.number === 99) {
         return 'J'
       }
+      if (this.number === 0) {
+        return ''
+      }
       return this.number.toString()
     },
     colorStyle: function() {
       if (this.number === 99) {
         return {
-          backgroundColor: 'black',
-          color: 'white'
+          backgroundColor: 'black'
         }
       }
       let color = 'white'
@@ -84,8 +100,21 @@ export default {
       return {
         width: '60px',
         height: '70px',
-        border: '2px solid black',
+        borderWidth: '3px',
+        borderStyle: 'solid',
         fontSize: '36px'
+      }
+    },
+    selectedColorStyle: function() {
+      if (this.selected) {
+        return {
+          color: 'hotpink',
+          borderColor: 'hotpink'
+        }
+      }
+      return {
+        color: this.number === 99 ? 'white' : 'black',
+        borderColor: 'black'
       }
     }
   }
@@ -97,5 +126,6 @@ export default {
   padding: 15px;
   margin: 1px;
   text-align: center;
+  cursor: pointer;
 }
 </style>

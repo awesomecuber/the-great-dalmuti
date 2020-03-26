@@ -6,7 +6,8 @@
     </p>
     <br />
     <div id="deck">
-      <Card id="current-card" :number="currentCard" :large="true" />
+      <!-- <Card id="current-card" :number="currentCard" :large="true" /> -->
+      <Card id="current-card" :large="true" />
       <h3 id="current-card-count">x{{ currentCardCount }}</h3>
     </div>
 
@@ -14,6 +15,9 @@
     <div id="cards">
       <Card v-for="(card, index) in playerCards" :key="index" :number="card" />
     </div>
+    <button>
+      <h1 class="text-margin">PLAY</h1>
+    </button>
   </div>
 </template>
 
@@ -59,5 +63,10 @@ export default {
   display: flex;
   justify-content: center;
   width: 70%;
+  margin-bottom: 15px;
+}
+
+.text-margin {
+  margin: 10px 20px;
 }
 </style>
