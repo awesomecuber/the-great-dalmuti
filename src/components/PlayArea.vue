@@ -1,10 +1,10 @@
 <template>
-  <div>
+  <div id="play-area">
     <p id="turn-display">
       It is <b>{{ turn }}</b
       >'s turn.
     </p>
-
+    <br />
     <div id="deck">
       <Card id="current-card" :number="currentCard" :large="true" />
       <h3 id="current-card-count">x{{ currentCardCount }}</h3>
@@ -26,23 +26,10 @@ export default {
     Card
   },
   props: {
-    turn: {
-      type: String,
-      required: false // because taxes
-    },
-    currentCard: {
-      type: Number,
-      required: false // because at the start, theres no current
-    },
-    currentCardCount: {
-      // ie, 3 cards at a time
-      type: Number,
-      required: false // because at the start, theres no current
-    },
-    playerCards: {
-      type: Array,
-      required: true
-    }
+    turn: String,
+    currentCard: Number,
+    currentCardCount: Number,
+    playerCards: Array
   }
 }
 </script>

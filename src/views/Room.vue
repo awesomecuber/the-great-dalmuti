@@ -1,11 +1,13 @@
 <template>
   <div class="room">
     <center>
-      <h1 style="margin-bottom: 0px; margin-top: 0px;">The Great Dalmuti</h1>
-      <h2 style="margin: 0px;">
-        Room: {{ $route.params.room
-        }}<span v-if="loggedIn"> | Your Name: {{ name }}</span>
-      </h2>
+      <div class="header">
+        <h1 style="margin-bottom: 0px; margin-top: 0px;">The Great Dalmuti</h1>
+        <h2 style="margin: 0px;">
+          Room: {{ $route.params.room
+          }}<span v-if="loggedIn"> | Your Name: {{ name }}</span>
+        </h2>
+      </div>
       <hr />
       <div v-if="!gameStarted">
         <button @click="leave">Back to home</button>
@@ -34,7 +36,7 @@
           <input type="submit" value="login" />
         </form>
       </div>
-      <div v-else>
+      <div id="game" v-else>
         <play-area
           turn="BlueCrystal004"
           :currentCard="12"
@@ -44,49 +46,11 @@
 
         <br />
         <br />
-        <table class="played">
-          <td>
-            <div class="box">
-              <div class="margin">
-                <p><b>Last 5 moves:</b></p>
-                <table>
-                  <tr>
-                    <td><b>1. </b></td>
-                    <td><i>geek</i> played <b>five 10s</b></td>
-                  </tr>
-                  <tr>
-                    <td><b>2. </b></td>
-                    <td><i>jon</i> played <b>five 9s</b></td>
-                  </tr>
-                  <tr>
-                    <td><b>3. </b></td>
-                    <td><i>nico</i> played <b>five 8s</b></td>
-                  </tr>
-                  <tr>
-                    <td><b>4. </b></td>
-                    <td><i>frogyfro</i> played <b>[five 12s]</b></td>
-                  </tr>
-                  <tr>
-                    <td><b>5. </b></td>
-                    <td><i>aidan</i> <b>passed</b></td>
-                  </tr>
-                </table>
-
-                <p><b>This trick led by</b>: LordGeek101</p>
-              </div>
-              <div class="margin">
-                <p><b>Standings:</b></p>
-                <p>
-                  <span v-for="(user, index) in users" :key="index">
-                    <b>{{ index + 1 }}. </b><tt>{{ getRole(index) }}</tt>
-                    {{ user.username }} [<b>{{ user.cards.length }}</b
-                    >] <i v-if="user.left"> (user left)</i><br />
-                  </span>
-                </p>
-              </div>
-            </div>
-          </td>
-        </table>
+        <info-area
+          :lastMoves="lastMoves"
+          trickLead="LordGeek101"
+          :users="users"
+        />
       </div>
     </center>
   </div>
@@ -94,23 +58,32 @@
 
 <script>
 import PlayArea from '../components/PlayArea.vue'
+import InfoArea from '../components/InfoArea.vue'
 
 export default {
   name: 'Room',
   data() {
     return {
       rooms: [],
-      users: [], // socketID: string, username: string, ready: boolean, cards: string (i think)
+      users: [], // socketID: string, username: string, ready: boolean, cards: number
       nickInput: '',
       name: '',
       cards: [],
       loggedIn: false,
       ready: false,
-      gameStarted: false
+      gameStarted: false,
+      lastMoves: [
+        '<i>geek</i> played <b>five 10s</b>',
+        '<i>jon</i> played <b>five 9s</b>',
+        '<i>nico</i> played <b>five 8s</b>',
+        '<i>frogyfro</i> played <b>five 12s</b>',
+        '<i>aidan</i> <b>passed</p>'
+      ]
     }
   },
   components: {
-    PlayArea
+    PlayArea,
+    InfoArea
   },
   mounted() {
     this.$socket.removeAllListeners()
@@ -169,19 +142,6 @@ export default {
     this.$socket.emit('request-rooms') // megadumb
   },
   methods: {
-    getRole(index) {
-      if (index === 0) {
-        return 'GD'
-      } else if (index === 1) {
-        return 'LD'
-      } else if (index === this.users.length - 2) {
-        return 'LP'
-      } else if (index === this.users.length - 1) {
-        return 'GP'
-      } else {
-        return 'M'
-      }
-    },
     nick() {
       if (this.nickInput !== '' && !this.users.includes(this.nickInput)) {
         this.name = this.nickInput

@@ -6,10 +6,7 @@
 export default {
   name: 'Card',
   props: {
-    number: {
-      type: Number,
-      required: true
-    },
+    number: Number,
     large: {
       type: Boolean,
       default: false
