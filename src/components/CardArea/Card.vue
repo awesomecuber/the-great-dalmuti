@@ -24,9 +24,14 @@ export default {
       type: Boolean,
       required: true
     },
-    selected: {
+    startingState: {
       type: Boolean,
       default: false
+    }
+  },
+  data() {
+    return {
+      selected: false
     }
   },
   computed: {
@@ -123,6 +128,11 @@ export default {
   },
   mounted() {
     this.selected = this.startingState
+  },
+  watch: {
+    startingState: function(newVal) {
+      this.selected = newVal
+    }
   }
 }
 </script>

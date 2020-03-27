@@ -10,7 +10,7 @@
       :currentCard="12"
       :currentCardCount="5"
       :playerCards="cards"
-      :mandatoryTaxed="1"
+      :mandatoryTaxed="0"
     />
     <button>
       <h1 class="text-margin">PLAY</h1>
