@@ -3,9 +3,9 @@
     <center>
       <h3>Rooms:</h3>
       <div class="room" v-for="(room, index) in rooms" :key="index">
-        <button :disabled="room.started" @click="join(room.name)">
+        <button :disabled="room.state !== 'LOBBY'" @click="join(room.name)">
           {{ room.name }}
-          <span v-if="room.started"> (started)</span>
+          <span v-if="room.state !== 'LOBBY'"> (started)</span>
         </button>
         <button @click="remove(room.name)">remove!</button>
         <p>online: {{ room.users.length }}</p>

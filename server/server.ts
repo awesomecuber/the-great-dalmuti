@@ -8,6 +8,13 @@ http.listen(PORT, () => {
   console.log(`Listening at :${PORT}...`)
 })
 
+enum GameState {
+  Lobby = 'LOBBY',
+  Revolution = 'REVOLUTION',
+  Tax = 'TAX',
+  Play = 'PLAY'
+}
+
 interface User {
   socketID: string
   name: string
@@ -18,7 +25,7 @@ interface User {
 
 interface Room {
   name: string
-  started: boolean
+  state: GameState
   users: User[]
 }
 
@@ -31,7 +38,7 @@ io.on('connection', socket => {
     if (rooms.filter(room => roomName === room.name).length === 0) {
       rooms.push({
         name: roomName,
-        started: false,
+        state: GameState.Lobby,
         users: []
       })
       io.emit('room-update', rooms)
@@ -64,14 +71,14 @@ io.on('connection', socket => {
   socket.on('user-left', (roomName: string) => {
     rooms.forEach(room => {
       if (room.name === roomName) {
-        if (room.started) {
+        if (room.state === GameState.Lobby) {
+          room.users = room.users.filter(user => user.socketID !== socket.id)
+        } else {
           room.users.forEach(user => {
             if (user.socketID === socket.id) {
               user.left = true
             }
           })
-        } else {
-          room.users = room.users.filter(user => user.socketID !== socket.id)
         }
       }
     })
@@ -88,7 +95,7 @@ io.on('connection', socket => {
           }
         })
         // check if game should start
-        if (!room.started && room.users.length >= 4) {
+        if (room.state === GameState.Lobby && room.users.length >= 4) {
           let shouldStart = true
           room.users
             .map(user => user.ready)
@@ -99,40 +106,7 @@ io.on('connection', socket => {
             })
           if (shouldStart) {
             // should probably put this in a separate method lol
-            shuffle(room.users) // todo: make it so that the winner of the last game is first etc
-
-            let deck = []
-            let maxCard = 0 // more sophisticated algorithm would be good
-            if (room.users.length == 4) maxCard = 10
-            else if (room.users.length == 5) maxCard = 11
-            else maxCard = 12
-
-            for (let i = 1; i <= maxCard; i++) {
-              for (let j = 0; j < i; j++) {
-                deck.push(i)
-              }
-            }
-            deck.push(99) // jokers
-            deck.push(99) // jokers
-
-            shuffle(deck)
-
-            let perPerson = Math.floor(deck.length / room.users.length)
-            let remainder = deck.length % room.users.length
-
-            for (let i = 0; i < room.users.length; i++) {
-              room.users[i].cards = deck.splice(0, perPerson) // also replaces cards
-            }
-
-            for (let i = 0; i < remainder; i++) {
-              room.users[i].cards.push(deck.splice(0, 1)[0])
-            }
-
-            for (let i = 0; i < room.users.length; i++) {
-              room.users[i].cards.sort((a, b) => a - b)
-            }
-
-            room.started = true
+            startGame(room)
           }
         }
       }
@@ -147,24 +121,44 @@ io.on('connection', socket => {
   socket.on('request-socketid', () => {
     socket.emit('socketid', socket.id)
   })
-
-  // socket.on('disconnect', () => {
-  //   rooms.forEach(room => {
-  //     rooms.forEach(room => {
-  //       if (room.started) {
-  //         room.users.forEach(user => {
-  //           if (user.socketID === socket.id) {
-  //             user.left = true
-  //           }
-  //         })
-  //       } else {
-  //         room.users = room.users.filter(user => user.socketID !== socket.id)
-  //       }
-  //     })
-  //   })
-  //   io.emit('room-update', rooms)
-  // })
 })
+
+function startGame(room: Room) {
+  shuffle(room.users) // todo: make it so that the winner of the last game is first etc
+
+  let deck = []
+  let maxCard = 0 // more sophisticated algorithm would be good
+  if (room.users.length == 4) maxCard = 10
+  else if (room.users.length == 5) maxCard = 11
+  else maxCard = 12
+
+  for (let i = 1; i <= maxCard; i++) {
+    for (let j = 0; j < i; j++) {
+      deck.push(i)
+    }
+  }
+  deck.push(99) // jokers
+  deck.push(99) // jokers
+
+  shuffle(deck)
+
+  let perPerson = Math.floor(deck.length / room.users.length)
+  let remainder = deck.length % room.users.length
+
+  for (let i = 0; i < room.users.length; i++) {
+    room.users[i].cards = deck.splice(0, perPerson) // also replaces cards
+  }
+
+  for (let i = 0; i < remainder; i++) {
+    room.users[i].cards.push(deck.splice(0, 1)[0])
+  }
+
+  for (let i = 0; i < room.users.length; i++) {
+    room.users[i].cards.sort((a, b) => a - b)
+  }
+
+  room.state = GameState.Revolution
+}
 
 function shuffle(a: any[]) {
   for (let i = a.length - 1; i > 0; i--) {

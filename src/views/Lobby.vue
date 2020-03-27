@@ -53,7 +53,7 @@ export default {
           this.users = room.users // saving users
 
           // check if game should start
-          if (room.started) {
+          if (room.state !== 'LOBBY') {
             this.gameStarted = true
             this.$router.push('/room/' + this.$route.params.room + '/game')
           }
