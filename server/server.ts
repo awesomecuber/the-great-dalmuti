@@ -10,13 +10,12 @@ http.listen(PORT, () => {
 
 interface User {
   socketID: string
-  username: string // i want to change this to name, User.username is a bit dumb
+  name: string
   ready: boolean
   left: boolean
   cards: number[] // hopefully i can restrict it to be 1-13 or something
 }
 
-// add "started"
 interface Room {
   name: string
   started: boolean
@@ -52,7 +51,7 @@ io.on('connection', socket => {
       if (room.name === roomName) {
         room.users.push({
           socketID: socket.id,
-          username: username,
+          name: username,
           ready: false,
           left: false,
           cards: []

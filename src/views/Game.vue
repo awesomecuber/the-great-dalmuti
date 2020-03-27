@@ -61,7 +61,7 @@ export default {
 
       // update cards
       this.users.forEach(user => {
-        if (user.username === this.name) {
+        if (user.name === this.name) {
           this.cards = user.cards
         }
       })
@@ -78,7 +78,7 @@ export default {
       // if socket is already in list of rooms, be that guy (for vue reloading)
       this.users.forEach(user => {
         if (user.socketID === socketID) {
-          this.name = user.username
+          this.name = user.name
           this.$emit('name-set', this.name)
         }
       })

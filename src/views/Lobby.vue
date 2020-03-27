@@ -4,13 +4,13 @@
     <br />
     <h3>Users:</h3>
     <div v-for="(user, index) in users" :key="index">
-      <p v-if="user.username === name">
-        <b>{{ user.username }} </b>
+      <p v-if="user.name === name">
+        <b>{{ user.name }} </b>
         <button @click="toggleReady">ready: {{ ready ? 'yes' : 'no' }}</button>
         <button @click="remove">remove from lobby</button>
       </p>
       <p v-else>
-        {{ user.username }}
+        {{ user.name }}
         (ready: {{ user.ready ? 'yes' : 'no' }})
       </p>
     </div>
@@ -61,7 +61,7 @@ export default {
       })
 
       // checking if users no longer includes current person (server was reset in room yo)
-      if (!this.users.map(user => user.username).includes(this.name)) {
+      if (!this.users.map(user => user.name).includes(this.name)) {
         this.nickInput = ''
         this.name = ''
         this.loggedIn = false
@@ -80,7 +80,7 @@ export default {
       // if socket is already in list of rooms, be that guy (for vue reloading)
       this.users.forEach(user => {
         if (user.socketID === socketID) {
-          this.name = user.username
+          this.name = user.name
           this.loggedIn = true
           this.$emit('name-set', this.name)
         }
@@ -101,7 +101,7 @@ export default {
     nick() {
       if (
         this.nickInput !== '' &&
-        !this.users.map(user => user.username).includes(this.nickInput)
+        !this.users.map(user => user.name).includes(this.nickInput)
       ) {
         this.name = this.nickInput
         this.loggedIn = true
