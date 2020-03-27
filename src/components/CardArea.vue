@@ -1,39 +1,42 @@
 <template>
   <div id="play-area">
-    <p id="turn-display">
-      It is <b>{{ turn }}</b
-      >'s turn.
-    </p>
-    <br />
     <div id="deck">
-      <!-- <Card id="current-card" :number="currentCard" :large="true" /> -->
-      <Card id="current-card" :large="true" />
+      <Card id="current-card" :large="true" :selectable="false" />
       <h3 id="current-card-count">x{{ currentCardCount }}</h3>
     </div>
 
     <h3>Your hand:</h3>
     <div id="cards">
-      <Card v-for="(card, index) in playerCards" :key="index" :number="card" />
+      <Card
+        v-for="(card, index) in playerCards"
+        :key="index"
+        :number="card"
+        :selectable="mandatoryTaxed === 0"
+        :selected="mandatoryTax(index)"
+      />
     </div>
-    <button>
-      <h1 class="text-margin">PLAY</h1>
-    </button>
   </div>
 </template>
 
 <script>
-import Card from './PlayArea/Card.vue'
+// i need to fix cards! make is so that some of the data regarding cards is stored in CardArea
+import Card from './CardArea/Card.vue'
 
 export default {
-  name: 'PlayArea',
+  name: 'CardAreaArea',
   components: {
     Card
   },
   props: {
-    turn: String,
     currentCard: Number,
     currentCardCount: Number,
-    playerCards: Array
+    playerCards: Array,
+    mandatoryTaxed: Number
+  },
+  methods: {
+    mandatoryTax(index) {
+      return index < this.mandatoryTaxed
+    }
   }
 }
 </script>

@@ -99,7 +99,10 @@ export default {
   },
   methods: {
     nick() {
-      if (this.nickInput !== '' && !this.users.includes(this.nickInput)) {
+      if (
+        this.nickInput !== '' &&
+        !this.users.map(user => user.username).includes(this.nickInput)
+      ) {
         this.name = this.nickInput
         this.loggedIn = true
         this.$emit('name-set', this.name)

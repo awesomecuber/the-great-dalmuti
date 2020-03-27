@@ -1,6 +1,6 @@
 <template>
   <div
-    @click="selected = large ? false : !selected"
+    @click="selected = selectable ? !selected : selected"
     class="card"
     :style="[colorStyle, sizeStyle, selectedColorStyle]"
   >
@@ -11,17 +11,20 @@
 <script>
 export default {
   name: 'Card',
-  data() {
-    return {
-      selected: false
-    }
-  },
   props: {
     number: {
       type: Number,
       default: 0 // represents no card
     },
     large: {
+      type: Boolean,
+      default: false
+    },
+    selectable: {
+      type: Boolean,
+      required: true
+    },
+    selected: {
       type: Boolean,
       default: false
     }
@@ -117,6 +120,9 @@ export default {
         borderColor: 'black'
       }
     }
+  },
+  mounted() {
+    this.selected = this.startingState
   }
 }
 </script>

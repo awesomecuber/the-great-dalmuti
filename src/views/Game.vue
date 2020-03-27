@@ -1,12 +1,20 @@
 <template>
   <div id="game">
-    <play-area
+    <p id="turn-display">
+      It is <b>{{ turn }}</b
+      >'s turn.
+    </p>
+    <br />
+    <card-area
       turn="BlueCrystal004"
       :currentCard="12"
       :currentCardCount="5"
       :playerCards="cards"
+      :mandatoryTaxed="1"
     />
-
+    <button>
+      <h1 class="text-margin">PLAY</h1>
+    </button>
     <br />
     <br />
     <info-area :lastMoves="lastMoves" trickLead="LordGeek101" :users="users" />
@@ -14,13 +22,13 @@
 </template>
 
 <script>
-import PlayArea from '../components/PlayArea.vue'
+import CardArea from '../components/CardArea.vue'
 import InfoArea from '../components/InfoArea.vue'
 
 export default {
   name: 'Game',
   components: {
-    PlayArea,
+    CardArea,
     InfoArea
   },
   data() {
@@ -36,6 +44,7 @@ export default {
         '<i>frogyfro</i> played <b>five 12s</b>',
         '<i>aidan</i> <b>passed</p>'
       ],
+      turn: 'BlueCrystal004',
       gameEnded: false // to recognize when to prevent next(false)
     }
   },
@@ -87,7 +96,6 @@ export default {
   },
   methods: {},
   beforeRouteLeave(to, from, next) {
-    console.log(to.path)
     if (to.path === '/home') {
       next()
     } else {
