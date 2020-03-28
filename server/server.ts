@@ -71,7 +71,7 @@ io.on('connection', socket => {
   socket.on('user-left', (roomName: string) => {
     rooms.forEach(room => {
       if (room.name === roomName) {
-        if (room.state === GameState.Lobby) {
+        if (room.state !== GameState.Play) {
           room.users = room.users.filter(user => user.socketID !== socket.id)
         } else {
           room.users.forEach(user => {
@@ -105,7 +105,6 @@ io.on('connection', socket => {
               }
             })
           if (shouldStart) {
-            // should probably put this in a separate method lol
             startGame(room)
           }
         }
@@ -163,9 +162,10 @@ function startGame(room: Room) {
   let interval = setInterval(() => {
     count--
     if (count >= 0) {
-      // emit second update
+      io.emit('revolution-timer-update', count)
     } else {
-      // emit gamestate change
+      room.state = GameState.Tax
+      io.emit('room-update', rooms)
       clearInterval(interval)
     }
   }, 1000)

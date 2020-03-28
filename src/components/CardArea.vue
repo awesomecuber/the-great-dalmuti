@@ -12,18 +12,17 @@
         :key="index"
         :number="card"
         :selectable="mandatoryTaxed === 0"
-        :selected="mandatoryTax(index)"
+        :startingState="mandatoryTax(index)"
       />
     </div>
   </div>
 </template>
 
 <script>
-// i need to fix cards! make is so that some of the data regarding cards is stored in CardArea
 import Card from './CardArea/Card.vue'
 
 export default {
-  name: 'CardAreaArea',
+  name: 'CardArea',
   components: {
     Card
   },

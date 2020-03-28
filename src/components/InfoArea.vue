@@ -16,7 +16,7 @@
       <p class="left">
         <span v-for="(user, index) in users" :key="index">
           <b>{{ index + 1 }}. </b><tt>{{ getRole(index) }}</tt>
-          {{ user.username }} [<b>{{ user.cards.length }}</b
+          {{ user.name }} [<b>{{ user.cards.length }}</b
           >] <i v-if="user.left"> (user left)</i>
           <br v-if="index !== lastMoves.length - 1" />
         </span>

@@ -1,16 +1,13 @@
 <template>
   <div id="game">
-    <p id="turn-display">
-      It is <b>{{ turn }}</b
-      >'s turn.
-    </p>
+    <p id="display" v-html="displayText"></p>
     <br />
     <card-area
       turn="BlueCrystal004"
       :currentCard="12"
       :currentCardCount="5"
       :playerCards="cards"
-      :mandatoryTaxed="0"
+      :mandatoryTaxed="mandatoryTax"
     />
     <button>
       <h1 class="text-margin">PLAY</h1>
@@ -36,6 +33,8 @@ export default {
       rooms: [],
       users: [],
       name: '',
+      gameState: '',
+      revolutionTimeLeft: 5, // need to remember to reset somehow after revolution
       cards: [],
       lastMoves: [
         '<i>geek</i> played <b>five 10s</b>',
@@ -48,6 +47,61 @@ export default {
       gameEnded: false // to recognize when to prevent next(false)
     }
   },
+  computed: {
+    playerRole: function() {
+      let rank = this.users.map(user => user.name).indexOf(this.name)
+      if (rank === 0) {
+        return 'GD'
+      } else if (rank === 1) {
+        return 'LD'
+      } else if (rank === this.users.length - 2) {
+        return 'LP'
+      } else if (rank === this.users.length - 1) {
+        return 'GP'
+      } else {
+        return 'M'
+      }
+    },
+    displayText: function() {
+      switch (this.gameState) {
+        case 'REVOLUTION':
+          return `Revolution Stage: ${this.revolutionTimeLeft}s`
+        case 'TAX':
+          if (this.playerRole === 'GD') {
+            return `Tax stage: Pick 2 cards to give to ${
+              this.users[this.users.length - 1].name
+            }`
+          } else if (this.playerRole === 'LD') {
+            return `Tax stage: Pick 1 card to give to ${
+              this.users[this.users.length - 2].name
+            }`
+          } else if (this.playerRole === 'LP') {
+            return `Tax stage: Your lowest card will be given to ${this.users[1].name}`
+          } else if (this.playerRole === 'GP') {
+            return `Tax stage: Your 2 lowest cards will be given to ${this.users[0].name}`
+          } else {
+            // merchant
+            return 'Tax stage'
+          }
+        case 'PLAY':
+          return `It is <b>${this.turn}</b>'s turn.`
+      }
+      return 'UHHH'
+    },
+    mandatoryTax: function() {
+      if (this.gameState !== 'TAX') {
+        return 0
+      } else {
+        if (this.playerRole === 'GP') {
+          return 2
+        } else if (this.playerRole === 'LP') {
+          return 1
+        } else {
+          return 0
+        }
+      }
+    }
+  },
   mounted() {
     this.$socket.removeAllListeners()
 
@@ -56,15 +110,24 @@ export default {
       rooms.forEach(room => {
         if (room.name === this.$route.params.room) {
           this.users = room.users // saving users
+          this.gameState = room.state
         }
       })
 
+      let numUsers = 0
       // update cards
       this.users.forEach(user => {
         if (user.name === this.name) {
           this.cards = user.cards
         }
+        if (!user.left) {
+          numUsers++
+        }
       })
+      console.log(numUsers)
+      if (numUsers < 4) {
+        this.$socket.emit('room-removed', this.$route.params.room)
+      }
 
       // checking if current room was deleted
       if (!this.rooms.includes(this.$route.params.room)) {
@@ -87,6 +150,10 @@ export default {
     this.$socket.emit('request-socketid')
 
     this.$socket.emit('request-rooms') // megadumb
+
+    this.$socket.on('revolution-timer-update', timeLeft => {
+      this.revolutionTimeLeft = timeLeft
+    })
 
     this.$socket.on('disconnect', reason => {
       if (reason === 'io client disconnect') {
