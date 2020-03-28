@@ -4,14 +4,28 @@
     <br />
     <card-area
       turn="BlueCrystal004"
-      :currentCard="12"
-      :currentCardCount="5"
+      :currentCard="topDeckCard"
+      :currentCardCount="playMultiple"
       :playerCards="cards"
       :mandatoryTaxed="mandatoryTax"
     />
-    <button>
-      <h1 class="text-margin">PLAY</h1>
-    </button>
+    <div>
+      <button
+        :disabled="this.mainButtonDisabled"
+        :style="{ color: this.mainButtonDisabled ? 'gainsboro' : 'black' }"
+      >
+        <h1 class="text-margin">
+          {{ mainButtonText }}
+        </h1>
+      </button>
+      <button
+        :disabled="this.passButtonDisabled"
+        :style="{ color: this.passButtonDisabled ? 'gainsboro' : 'black' }"
+      >
+        <h1 class="text-margin">Pass</h1>
+      </button>
+    </div>
+
     <br />
     <br />
     <info-area :lastMoves="lastMoves" trickLead="LordGeek101" :users="users" />
@@ -36,6 +50,8 @@ export default {
       gameState: '',
       revolutionTimeLeft: 5, // need to remember to reset somehow after revolution
       cards: [],
+      topDeckCard: 0,
+      playMultiple: 5,
       lastMoves: [
         '<i>geek</i> played <b>five 10s</b>',
         '<i>jon</i> played <b>five 9s</b>',
@@ -65,7 +81,7 @@ export default {
     displayText: function() {
       switch (this.gameState) {
         case 'REVOLUTION':
-          return `Revolution Stage: ${this.revolutionTimeLeft}s`
+          return `Revolution Stage (${this.revolutionTimeLeft}s left): If you have two jokers, you can declare a revolution!`
         case 'TAX':
           if (this.playerRole === 'GD') {
             return `Tax stage: Pick 2 cards to give to ${
@@ -81,12 +97,50 @@ export default {
             return `Tax stage: Your 2 lowest cards will be given to ${this.users[0].name}`
           } else {
             // merchant
-            return 'Tax stage'
+            return 'Tax stage: Sit tight while others trade!'
           }
         case 'PLAY':
           return `It is <b>${this.turn}</b>'s turn.`
       }
       return 'UHHH'
+    },
+    mainButtonText: function() {
+      switch (this.gameState) {
+        case 'REVOLUTION':
+          return this.playerRole === 'GP' ? 'Greater Revolution' : 'Revolution'
+        case 'TAX':
+          return 'Trade'
+        case 'PLAY':
+          return 'Play'
+      }
+      return 'UHHH'
+    },
+    mainButtonDisabled: function() {
+      switch (this.gameState) {
+        case 'REVOLUTION':
+          var numJokers = 0
+          this.cards.forEach(card => {
+            if (card === 99) {
+              numJokers++
+            }
+          })
+          return numJokers !== 2
+        case 'TAX':
+          return (
+            this.playerRole === 'M' ||
+            this.playerRole === 'LP' ||
+            this.playerRole === 'GP'
+          )
+        case 'PLAY':
+          return this.turn === this.name
+      }
+      return false
+    },
+    passButtonDisabled: function() {
+      if (this.gameState === 'PLAY' && this.topDeckCard !== 0) {
+        return false
+      }
+      return true
     },
     mandatoryTax: function() {
       if (this.gameState !== 'TAX') {
@@ -124,7 +178,7 @@ export default {
           numUsers++
         }
       })
-      console.log(numUsers)
+
       if (numUsers < 4) {
         this.$socket.emit('room-removed', this.$route.params.room)
       }

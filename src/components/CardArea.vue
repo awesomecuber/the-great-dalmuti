@@ -1,7 +1,12 @@
 <template>
   <div id="play-area">
     <div id="deck">
-      <Card id="current-card" :large="true" :selectable="false" />
+      <Card
+        id="current-card"
+        :number="currentCard"
+        :large="true"
+        :selectable="false"
+      />
       <h3 id="current-card-count">x{{ currentCardCount }}</h3>
     </div>
 
@@ -64,7 +69,7 @@ export default {
 #cards {
   display: flex;
   justify-content: center;
-  width: 70%;
+  width: 80%;
   margin-bottom: 15px;
 }
 
