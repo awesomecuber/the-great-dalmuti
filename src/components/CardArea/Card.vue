@@ -1,6 +1,6 @@
 <template>
   <div
-    @click="selected = selectable ? !selected : selected"
+    @click="$emit('tap')"
     class="card"
     :style="[colorStyle, sizeStyle, selectedColorStyle]"
   >
@@ -20,19 +20,7 @@ export default {
       type: Boolean,
       default: false
     },
-    selectable: {
-      type: Boolean,
-      required: true
-    },
-    startingState: {
-      type: Boolean,
-      default: false
-    }
-  },
-  data() {
-    return {
-      selected: false
-    }
+    selected: Boolean
   },
   computed: {
     display: function() {
@@ -124,14 +112,6 @@ export default {
         color: this.number === 99 ? 'white' : 'black',
         borderColor: 'black'
       }
-    }
-  },
-  mounted() {
-    this.selected = this.startingState
-  },
-  watch: {
-    startingState: function(newVal) {
-      this.selected = newVal
     }
   }
 }

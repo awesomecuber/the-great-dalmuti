@@ -5,7 +5,7 @@
         id="current-card"
         :number="currentCard"
         :large="true"
-        :selectable="false"
+        :selected="false"
       />
       <h3 id="current-card-count">x{{ currentCardCount }}</h3>
     </div>
@@ -14,10 +14,10 @@
     <div id="cards">
       <Card
         v-for="(card, index) in playerCards"
+        @tap="click(index)"
         :key="index"
         :number="card"
-        :selectable="mandatoryTaxed === 0"
-        :startingState="mandatoryTax(index)"
+        :selected="selected[index]"
       />
     </div>
   </div>
@@ -31,13 +31,41 @@ export default {
   components: {
     Card
   },
+  data() {
+    return {
+      selected: [],
+      selectable: false
+    }
+  },
   props: {
     currentCard: Number,
     currentCardCount: Number,
     playerCards: Array,
     mandatoryTaxed: Number
   },
+  watch: {
+    playerCards: function() {
+      this.initializeSelected()
+    }
+  },
+  mounted() {
+    this.initializeSelected()
+  },
   methods: {
+    initializeSelected() {
+      this.selected = []
+      for (let i = 0; i < this.playerCards.length; i++) {
+        this.selected.push(i < this.mandatoryTaxed)
+      }
+      this.selectable = this.mandatoryTaxed === 0
+      this.$emit('card-select-change', this.selected)
+    },
+    click(index) {
+      if (this.selectable) {
+        this.selected.splice(index, 1, !this.selected[index])
+      }
+      this.$emit('card-select-change', this.selected)
+    },
     mandatoryTax(index) {
       return index < this.mandatoryTaxed
     }

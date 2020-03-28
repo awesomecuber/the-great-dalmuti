@@ -4,6 +4,7 @@
     <br />
     <card-area
       turn="BlueCrystal004"
+      @card-select-change="cardSelectChange"
       :currentCard="topDeckCard"
       :currentCardCount="playMultiple"
       :playerCards="cards"
@@ -163,6 +164,7 @@ export default {
       this.rooms = rooms.map(room => room.name) // i only care about room names
       rooms.forEach(room => {
         if (room.name === this.$route.params.room) {
+          // TODO: i need to handle what happens when a user leaves while taxing is happening
           this.users = room.users // saving users
           this.gameState = room.state
         }
@@ -215,7 +217,17 @@ export default {
       }
     })
   },
-  methods: {},
+  methods: {
+    cardSelectChange(cardsSelectedState) {
+      let selectedCards = []
+      for (let i = 0; i < cardsSelectedState.length; i++) {
+        if (cardsSelectedState[i]) {
+          selectedCards.push(this.cards[i])
+        }
+      }
+      console.log(selectedCards)
+    }
+  },
   beforeRouteLeave(to, from, next) {
     if (to.path === '/home') {
       next()

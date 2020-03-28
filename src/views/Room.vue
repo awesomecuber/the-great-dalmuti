@@ -9,6 +9,7 @@
         <h2 style="margin: 0px;">
           Room: {{ $route.params.room
           }}<span v-if="name !== ''"> | Your Name: {{ name }}</span>
+          <!-- TODO: also show role (Lesser Peon, Merchant, etc) -->
         </h2>
       </div>
       <hr />
