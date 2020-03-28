@@ -158,6 +158,17 @@ function startGame(room: Room) {
   }
 
   room.state = GameState.Revolution
+
+  let count = 6
+  let interval = setInterval(() => {
+    count--
+    if (count >= 0) {
+      // emit second update
+    } else {
+      // emit gamestate change
+      clearInterval(interval)
+    }
+  }, 1000)
 }
 
 function shuffle(a: any[]) {

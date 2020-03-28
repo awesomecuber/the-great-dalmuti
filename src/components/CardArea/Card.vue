@@ -4,7 +4,7 @@
     class="card"
     :style="[colorStyle, sizeStyle, selectedColorStyle]"
   >
-    {{ display }}
+    <span class="text">{{ display }}</span>
   </div>
 </template>
 
@@ -139,7 +139,7 @@ export default {
 
 <style scoped>
 .card {
-  padding: 15px;
+  padding-top: 15px;
   margin: 1px;
   text-align: center;
   cursor: pointer;
