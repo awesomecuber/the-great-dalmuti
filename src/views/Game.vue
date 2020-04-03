@@ -3,15 +3,16 @@
     <p id="display" v-html="displayText"></p>
     <br />
     <card-area
-      turn="BlueCrystal004"
       @card-select-change="cardSelectChange"
       :currentCard="topDeckCard"
       :currentCardCount="playMultiple"
       :playerCards="cards"
       :mandatoryTaxed="mandatoryTax"
+      :taxSubmitted="taxSubmitted"
     />
     <div>
       <button
+        @click="mainButtonClick"
         :disabled="this.mainButtonDisabled"
         :style="{ color: this.mainButtonDisabled ? 'gainsboro' : 'black' }"
       >
@@ -20,6 +21,7 @@
         </h1>
       </button>
       <button
+        @click="passButtonClick"
         :disabled="this.passButtonDisabled"
         :style="{ color: this.passButtonDisabled ? 'gainsboro' : 'black' }"
       >
@@ -51,6 +53,7 @@ export default {
       gameState: '',
       revolutionTimeLeft: 5, // need to remember to reset somehow after revolution
       cards: [],
+      selectedCards: [],
       topDeckCard: 0,
       playMultiple: 5,
       lastMoves: [
@@ -60,7 +63,7 @@ export default {
         '<i>frogyfro</i> played <b>five 12s</b>',
         '<i>aidan</i> <b>passed</p>'
       ],
-      turn: 'BlueCrystal004',
+      turn: '',
       gameEnded: false // to recognize when to prevent next(false)
     }
   },
@@ -127,11 +130,14 @@ export default {
           })
           return numJokers !== 2
         case 'TAX':
-          return (
+          if (
             this.playerRole === 'M' ||
             this.playerRole === 'LP' ||
             this.playerRole === 'GP'
-          )
+          ) {
+            return true
+          }
+          return this.taxSubmitted.length > 0
         case 'PLAY':
           return this.turn === this.name
       }
@@ -155,6 +161,13 @@ export default {
           return 0
         }
       }
+    },
+    taxSubmitted: function() {
+      let index = this.users.map(user => user.name).indexOf(this.name)
+      if (index !== -1) {
+        return this.users[index].taxCards
+      }
+      return []
     }
   },
   mounted() {
@@ -164,9 +177,9 @@ export default {
       this.rooms = rooms.map(room => room.name) // i only care about room names
       rooms.forEach(room => {
         if (room.name === this.$route.params.room) {
-          // TODO: i need to handle what happens when a user leaves while taxing is happening
           this.users = room.users // saving users
           this.gameState = room.state
+          this.turn = room.currentPlayer
         }
       })
 
@@ -218,6 +231,26 @@ export default {
     })
   },
   methods: {
+    mainButtonClick() {
+      switch (this.gameState) {
+        case 'REVOLUTION':
+          this.$socket.emit('revolution', this.$route.params.room)
+          return
+        case 'TAX':
+          this.$socket.emit(
+            'tax-select',
+            this.$route.params.room,
+            this.selectedCards
+          )
+          return
+        case 'PLAY':
+          this.$socket.emit('play', this.$route.params.room, this.selectedCards)
+          return
+      }
+    },
+    passButtonClick() {
+      this.$socket.emit('pass', this.$route.params.room)
+    },
     cardSelectChange(cardsSelectedState) {
       let selectedCards = []
       for (let i = 0; i < cardsSelectedState.length; i++) {
@@ -225,7 +258,7 @@ export default {
           selectedCards.push(this.cards[i])
         }
       }
-      console.log(selectedCards)
+      this.selectedCards = selectedCards
     }
   },
   beforeRouteLeave(to, from, next) {

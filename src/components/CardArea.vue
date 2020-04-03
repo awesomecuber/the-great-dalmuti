@@ -41,11 +41,26 @@ export default {
     currentCard: Number,
     currentCardCount: Number,
     playerCards: Array,
-    mandatoryTaxed: Number
+    mandatoryTaxed: Number,
+    taxSubmitted: Array
   },
   watch: {
     playerCards: function() {
-      this.initializeSelected()
+      // this.initializeSelected()
+    },
+    taxSubmitted: function(newTax, oldTax) {
+      if (newTax.length !== oldTax.length) {
+        this.initializeSelected()
+      }
+      let same = true
+      for (let i = 0; i < newTax.length; i++) {
+        if (newTax[i] !== oldTax[i]) {
+          same = false
+        }
+      }
+      if (!same) {
+        this.initializeSelected()
+      }
     }
   },
   mounted() {
@@ -58,6 +73,17 @@ export default {
         this.selected.push(i < this.mandatoryTaxed)
       }
       this.selectable = this.mandatoryTaxed === 0
+
+      if (this.taxSubmitted.length > 0) {
+        this.selectable = false
+        let j = 0
+        for (let i = 0; i < this.selected.length; i++) {
+          if (this.taxSubmitted[j] === this.playerCards[i]) {
+            j++
+            this.selected[i] = true
+          }
+        }
+      }
       this.$emit('card-select-change', this.selected)
     },
     click(index) {
@@ -65,20 +91,12 @@ export default {
         this.selected.splice(index, 1, !this.selected[index])
       }
       this.$emit('card-select-change', this.selected)
-    },
-    mandatoryTax(index) {
-      return index < this.mandatoryTaxed
     }
   }
 }
 </script>
 
 <style>
-#turn-display {
-  font-size: 20px;
-  margin: 5px 0px;
-}
-
 #deck {
   display: inline-flex;
   flex-direction: column;

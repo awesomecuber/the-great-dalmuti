@@ -21,11 +21,17 @@ interface User {
   ready: boolean
   left: boolean
   cards: number[] // hopefully i can restrict it to be 1-13 or something
+  taxCards: number[]
+  taxSubmitted: boolean
 }
 
 interface Room {
   name: string
   state: GameState
+  trickLead: string // username
+  currentPlayer: string // username
+  currentCard: number
+  currentCardCount: number
   users: User[]
 }
 
@@ -38,6 +44,10 @@ io.on('connection', socket => {
     if (rooms.filter(room => roomName === room.name).length === 0) {
       rooms.push({
         name: roomName,
+        trickLead: '',
+        currentPlayer: '',
+        currentCard: 0,
+        currentCardCount: 0,
         state: GameState.Lobby,
         users: []
       })
@@ -61,7 +71,9 @@ io.on('connection', socket => {
           name: username,
           ready: false,
           left: false,
-          cards: []
+          cards: [],
+          taxCards: [],
+          taxSubmitted: false
         })
       }
     })
@@ -73,6 +85,7 @@ io.on('connection', socket => {
       if (room.name === roomName) {
         if (room.state !== GameState.Play) {
           room.users = room.users.filter(user => user.socketID !== socket.id)
+          // if its tax phase, figure out if taxes need to be redone
         } else {
           room.users.forEach(user => {
             if (user.socketID === socket.id) {
@@ -112,6 +125,57 @@ io.on('connection', socket => {
     })
     io.emit('room-update', rooms)
   })
+
+  socket.on('revolution', (roomName: string) => {
+    // how the  heck am i gonna stop the revolution timer interval thing
+  })
+
+  socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
+    rooms.forEach(room => {
+      if (room.name === roomName) {
+        let index = room.users.map(user => user.socketID).indexOf(socket.id)
+        if (
+          index === 0 &&
+          !room.users[0].taxSubmitted &&
+          selectedCards.length == 2
+        ) {
+          room.users[0].taxSubmitted = true
+          room.users[0].taxCards = selectedCards
+        } else if (
+          index === 1 &&
+          !room.users[1].taxSubmitted &&
+          selectedCards.length == 1
+        ) {
+          room.users[1].taxSubmitted = true
+          room.users[1].taxCards = selectedCards
+        }
+        if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
+          taxSelected(room)
+        }
+      }
+    })
+    io.emit('room-update', rooms)
+  })
+
+  socket.on('play', (roomName: string, selectedCards: number[]) => {
+    rooms.forEach(room => {
+      if (room.name === roomName) {
+        room.users.forEach(user => {
+          if (user.socketID === socket.id) {
+            if (room.currentCard === 0) {
+              // check if selectedCards is valid
+            } else if (selectedCards.length === room.currentCardCount) {
+              // check if selectedCards is valid
+            } else {
+              // definitely not valid
+            }
+          }
+        })
+      }
+    })
+  })
+
+  socket.on('pass', (roomName: string) => {})
 
   socket.on('request-rooms', () => {
     socket.emit('room-update', rooms)
@@ -158,17 +222,48 @@ function startGame(room: Room) {
 
   room.state = GameState.Revolution
 
-  let count = 6
-  let interval = setInterval(() => {
-    count--
-    if (count >= 0) {
-      io.emit('revolution-timer-update', count)
+  let revolutionTimer = 6
+  let revolutionInterval = setInterval(() => {
+    revolutionTimer--
+    if (revolutionTimer >= 0) {
+      io.emit('revolution-timer-update', revolutionTimer)
     } else {
       room.state = GameState.Tax
       io.emit('room-update', rooms)
-      clearInterval(interval)
+      clearInterval(revolutionInterval)
     }
   }, 1000)
+}
+
+function taxSelected(room: Room) {
+  let gd = room.users[0]
+  let ld = room.users[1]
+  let lp = room.users[room.users.length - 2]
+  let gp = room.users[room.users.length - 1]
+
+  // greater trade
+  gd.cards.splice(gd.cards.indexOf(gd.taxCards[0]), 1)
+  gd.cards.splice(gd.cards.indexOf(gd.taxCards[1]), 1)
+  gd.cards.push(...gp.cards.splice(0, 2))
+  gp.cards.push(...gd.taxCards)
+  gd.cards.sort((a, b) => a - b)
+  gp.cards.sort((a, b) => a - b)
+
+  gd.taxCards = []
+  gd.taxSubmitted = false
+
+  // lesser trade
+  ld.cards.splice(ld.cards.indexOf(ld.taxCards[0]), 1)
+  ld.cards.push(...lp.cards.splice(0, 1))
+  lp.cards.push(...ld.taxCards)
+  ld.cards.sort((a, b) => a - b)
+  lp.cards.sort((a, b) => a - b)
+
+  ld.taxCards = []
+  ld.taxSubmitted = false
+
+  room.state = GameState.Play
+  room.currentPlayer = gd.name
 }
 
 function shuffle(a: any[]) {
