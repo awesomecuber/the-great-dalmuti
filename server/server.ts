@@ -20,6 +20,7 @@ interface User {
   name: string
   ready: boolean
   left: boolean
+  won: number // 0 is not yet, 1 is first place, 2 is second place, etc
   cards: number[] // hopefully i can restrict it to be 1-13 or something
   taxCards: number[]
   taxSubmitted: boolean
@@ -35,18 +36,20 @@ interface Room {
   users: User[]
   revolutionTimer: number
   revolutionInterval: NodeJS.Timeout
+  firstRound: boolean
 }
 
 const REVOLUTION_LENGTH = 5
 const CARD_ORDER = (a: number, b: number) => a - b
+const JOKER = 99
 
 let rooms: Room[] = []
 
 io.on('connection', socket => {
-  socket.emit('room-update', rooms)
+  
 
   socket.on('room-created', (roomName: string) => {
-    if (rooms.filter(room => roomName === room.name).length === 0) {
+    if (rooms.filter(room => roomName === room.name).length === 0) { // dumb
       rooms.push({
         name: roomName,
         trickLead: '',
@@ -56,9 +59,10 @@ io.on('connection', socket => {
         state: GameState.Lobby,
         users: [],
         revolutionTimer: REVOLUTION_LENGTH + 1,
-        revolutionInterval: null
+        revolutionInterval: null,
+        firstRound: true
       })
-      io.emit('room-update', rooms)
+      // emit update
     }
   })
 
@@ -66,7 +70,7 @@ io.on('connection', socket => {
     let sizeBefore = rooms.length
     rooms = rooms.filter(room => room.name !== roomName)
     if (sizeBefore !== rooms.length) {
-      io.emit('room-update', rooms)
+      // emit update
     }
   })
 
@@ -77,11 +81,12 @@ io.on('connection', socket => {
       name: username,
       ready: false,
       left: false,
+      won: 0,
       cards: [],
       taxCards: [],
       taxSubmitted: false
     })
-    io.emit('room-update', rooms)
+    // emit update
   })
 
   socket.on('user-left', (roomName: string) => {
@@ -95,7 +100,7 @@ io.on('connection', socket => {
     } else {
       getUserByRoom(room, socket.id).left = true
     }
-    io.emit('room-update', rooms)
+    // emit update
   })
 
   socket.on('ready-toggle', (roomName: string, readyStatus: boolean) => {
@@ -116,15 +121,16 @@ io.on('connection', socket => {
         startGame(room)
       }
     }
-    io.emit('room-update', rooms)
+    // emit update
   })
 
   socket.on('revolution', (roomName: string) => {
+    // TODO: different handling for greater revolution
     let room = getRoom(roomName)
     clearInterval(room.revolutionInterval)
     room.revolutionTimer = REVOLUTION_LENGTH + 1
     room.state = GameState.Play
-    io.emit('room-update', rooms)
+    // emit update
   })
 
   socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
@@ -151,26 +157,82 @@ io.on('connection', socket => {
     if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
       taxSelected(room)
     }
-    io.emit('room-update', rooms)
+    // emit update
   })
 
   socket.on('play', (roomName: string, selectedCards: number[]) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
 
-    if (user.socketID === socket.id) {
-      if (room.currentCard === 0) {
-        // check if selectedCards is valid
-      } else if (selectedCards.length === room.currentCardCount) {
-        // check if selectedCards is valid
+    if (room.currentPlayer === user.name) {
+      let uniqueCards = [...new Set(selectedCards)]
+      // selectedCards is sorted
+      if (uniqueCards.length === 1 || uniqueCards[1] === JOKER) {
+        let index = room.users.indexOf(user)
+        let nextIndex = index === room.users.length - 1 ? 0 : index + 1
+        while (room.users[nextIndex].left || room.users[nextIndex].won > 0) {
+          nextIndex = nextIndex + 1 === room.users.length ? 0 : nextIndex + 1
+        }
+
+        if (
+          room.currentCard === 0 ||
+          (selectedCards.length === room.currentCardCount &&
+            selectedCards[0] < room.currentCard)
+        ) {
+          // start of the hand || valid hand
+          room.currentCardCount = selectedCards.length
+          room.currentCard = selectedCards[0]
+          room.currentPlayer = room.users[nextIndex].name
+          room.trickLead = room.currentPlayer
+          removeCards(user, selectedCards)
+
+          // check if user won
+          if (user.cards.length === 0) {
+            let biggestWon = 0
+            let remainingPlayers = -1 // current player hasn't won yet
+            room.users.forEach(user => {
+              biggestWon = Math.max(biggestWon, user.won)
+              if (!user.left && user.won) {
+                remainingPlayers++
+              }
+            })
+            user.won = biggestWon + 1
+            if (remainingPlayers === 1) {
+              restart(room)
+            }
+          }
+        } else {
+          // not a valid play
+          // emit something
+        }
       } else {
-        // definitely not valid
+        // emit error
       }
     }
   })
 
-  socket.on('pass', (roomName: string) => {})
+  socket.on('pass', (roomName: string) => {
+    let room = getRoom(roomName)
+    let user = getUserByRoom(room, socket.id)
 
+    if (room.currentPlayer === user.name && room.trickLead !== user.name) {
+      let index = room.users.indexOf(user)
+      let nextIndex = index === room.users.length - 1 ? 0 : index + 1
+      while (room.users[nextIndex].left || room.users[nextIndex].won > 0) {
+        nextIndex = nextIndex + 1 === room.users.length ? 0 : nextIndex + 1
+      }
+      room.currentPlayer = room.users[nextIndex].name
+      if (room.currentPlayer === room.trickLead) {
+        // trick won
+        room.currentCard = 0
+        room.currentCardCount = 0
+      }
+    } else {
+      // emit error
+    }
+  })
+
+  // reconsider this
   socket.on('request-rooms', () => {
     socket.emit('room-update', rooms)
   })
@@ -180,8 +242,53 @@ io.on('connection', socket => {
   })
 })
 
+function emitRoomList() {
+  let roomList = rooms.map(room => {
+    return {
+      name: room.name,
+      joinable: room.state === GameState.Lobby,
+      playerCount: room.users.filter(user => !user.left).length
+    }
+  })
+  // emit
+}
+
+function emitUserList(room: Room) {
+  let userList = room.users.map(user => {
+    return {
+      name: user.name,
+      ready: user.ready,
+      left: user.left,
+      won: user.won,
+      cardCount: user.cards.length
+    }
+  })
+  // emit
+}
+
+function emitGameState(room: Room) {
+  let gameState = {
+    state: room.state,
+    currentPlayer: room.currentPlayer,
+    trickLead: room.trickLead,
+    currentCard: room.currentCard,
+    currentCardCount: room.currentCardCount,
+    revolutionTimer: room.revolutionTimer
+  }
+}
+
+function emitUserState(room: Room, user: User) {
+  let userState = {
+    cards: user.cards,
+    taxSubmitted: user.taxSubmitted,
+    taxCards: user.taxCards
+  }
+}
+
 function startGame(room: Room) {
-  shuffle(room.users) // todo: make it so that the winner of the last game is first etc
+  if (room.firstRound) {
+    shuffle(room.users)
+  }
 
   let deck = []
   let maxCard = 0 // more sophisticated algorithm would be good
@@ -194,8 +301,8 @@ function startGame(room: Room) {
       deck.push(i)
     }
   }
-  deck.push(99) // jokers
-  deck.push(99) // jokers
+  deck.push(JOKER)
+  deck.push(JOKER)
 
   shuffle(deck)
 
@@ -226,7 +333,6 @@ function startGame(room: Room) {
       io.emit('room-update', rooms)
 
       clearInterval(room.revolutionInterval)
-      room.revolutionTimer = REVOLUTION_LENGTH + 1
     }
   }, 1000)
 }
@@ -264,12 +370,8 @@ function taxSelected(room: Room) {
 
 function tradeTax(a: User, b: User) {
   // remove tax cards from users
-  a.taxCards.forEach(taxCard => {
-    a.cards.splice(a.cards.indexOf(taxCard), 1)
-  })
-  b.taxCards.forEach(taxCard => {
-    b.cards.splice(b.cards.indexOf(taxCard), 1)
-  })
+  removeCards(a, a.taxCards)
+  removeCards(b, b.taxCards)
 
   // give cards to the other
   a.cards.push(...b.taxCards)
@@ -278,12 +380,42 @@ function tradeTax(a: User, b: User) {
   // sort hands
   a.cards.sort(CARD_ORDER)
   b.cards.sort(CARD_ORDER)
+}
 
-  a.taxCards = []
-  a.taxSubmitted = false
+function removeCards(user: User, cards: number[]) {
+  cards.forEach(card => {
+    user.cards.splice(user.cards.indexOf(card), 1)
+  })
+}
 
-  b.taxCards = []
-  b.taxSubmitted = false
+function restart(room: Room) {
+  room.users.filter(user => user.left)
+  room.users.sort((a, b) => {
+    if (a.won === 0) {
+      return 1
+    }
+    if (b.won === 0) {
+      return -1
+    }
+    return a.won - b.won
+  })
+  room.users.forEach(user => {
+    user.cards = []
+    user.ready = false
+    user.taxSubmitted = false
+    user.taxCards = []
+    user.won = 0
+  })
+
+  room.currentCard = 0
+  room.currentCardCount = 0
+  room.currentPlayer = ''
+  room.trickLead = ''
+  room.revolutionInterval = null
+  room.revolutionTimer = REVOLUTION_LENGTH + 1
+
+  room.state = GameState.Lobby
+  room.firstRound = false
 }
 
 function getRoom(roomName: string): Room {
@@ -295,11 +427,11 @@ function getRoom(roomName: string): Room {
   return null
 }
 
-function getUser(roomName: string, socketID: any): User {
+function getUser(roomName: string, socketID: string): User {
   return getUserByRoom(getRoom(roomName), socketID)
 }
 
-function getUserByRoom(room: Room, socketID: any): User {
+function getUserByRoom(room: Room, socketID: string): User {
   if (!room) {
     return null
   }
