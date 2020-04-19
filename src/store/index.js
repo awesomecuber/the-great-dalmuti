@@ -46,6 +46,9 @@ export default new Vuex.Store({
     SET_REVOLUTION_TIME(state, revolutionTime) {
       state.gameState.revolutionTime = revolutionTime
     },
+    SET_NAME(state, name) {
+      state.userState.name = name
+    }
     SET_CARDS(state, cards) {
       state.userState.cards = cards
     },
@@ -82,6 +85,9 @@ export default new Vuex.Store({
       }
     },
     updateUserState({ commit, state }, userState) {
+      if (userState.name !== state.userState.name) {
+        commit('SET_NAME', userState.name)
+      }
       let oldCards = state.userState.cards
       let newCards = userState.cards
       let equal = true

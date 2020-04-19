@@ -4,11 +4,6 @@
     <br />
     <card-area
       @card-select-change="cardSelectChange"
-      :currentCard="topDeckCard"
-      :currentCardCount="playMultiple"
-      :playerCards="cards"
-      :mandatoryTaxed="mandatoryTax"
-      :taxSubmitted="taxSubmitted"
     />
     <div>
       <button
@@ -31,13 +26,14 @@
 
     <br />
     <br />
-    <info-area :lastMoves="lastMoves" trickLead="LordGeek101" :users="users" />
+    <info-area :lastMoves="lastMoves" />
   </div>
 </template>
 
 <script>
 import CardArea from '../components/CardArea.vue'
 import InfoArea from '../components/InfoArea.vue'
+import { mapState } from 'vuex'
 
 export default {
   name: 'Game',
@@ -47,64 +43,54 @@ export default {
   },
   data() {
     return {
-      rooms: [],
-      users: [],
-      name: '',
-      gameState: '',
-      revolutionTimeLeft: 5, // need to remember to reset somehow after revolution
-      cards: [],
       selectedCards: [],
-      topDeckCard: 0,
-      playMultiple: 5,
       lastMoves: [
         '<i>geek</i> played <b>five 10s</b>',
         '<i>jon</i> played <b>five 9s</b>',
         '<i>nico</i> played <b>five 8s</b>',
         '<i>frogyfro</i> played <b>five 12s</b>',
         '<i>aidan</i> <b>passed</p>'
-      ],
-      turn: '',
-      gameEnded: false // to recognize when to prevent next(false)
+      ]
     }
   },
   computed: {
     playerRole: function() {
-      let rank = this.users.map(user => user.name).indexOf(this.name)
+      let rank = this.userList.map(user => user.name).indexOf(this.userState.name)
       if (rank === 0) {
         return 'GD'
       } else if (rank === 1) {
         return 'LD'
-      } else if (rank === this.users.length - 2) {
+      } else if (rank === this.userList.length - 2) {
         return 'LP'
-      } else if (rank === this.users.length - 1) {
+      } else if (rank === this.userList.length - 1) {
         return 'GP'
       } else {
         return 'M'
       }
     },
     displayText: function() {
-      switch (this.gameState) {
+      switch (this.gameState.state) {
         case 'REVOLUTION':
-          return `Revolution Stage (${this.revolutionTimeLeft}s left): If you have two jokers, you can declare a revolution!`
+          return `Revolution Stage (${this.gameState.revolutionTime}s left): If you have two jokers, you can declare a revolution!`
         case 'TAX':
           if (this.playerRole === 'GD') {
             return `Tax stage: Pick 2 cards to give to ${
-              this.users[this.users.length - 1].name
+              this.userList[this.userList.length - 1].name
             }`
           } else if (this.playerRole === 'LD') {
             return `Tax stage: Pick 1 card to give to ${
-              this.users[this.users.length - 2].name
+              this.userList[this.userList.length - 2].name
             }`
           } else if (this.playerRole === 'LP') {
-            return `Tax stage: Your lowest card will be given to ${this.users[1].name}`
+            return `Tax stage: Your lowest card will be given to ${this.userList[1].name}`
           } else if (this.playerRole === 'GP') {
-            return `Tax stage: Your 2 lowest cards will be given to ${this.users[0].name}`
+            return `Tax stage: Your 2 lowest cards will be given to ${this.userList[0].name}`
           } else {
             // merchant
             return 'Tax stage: Sit tight while others trade!'
           }
         case 'PLAY':
-          return `It is <b>${this.turn}</b>'s turn.`
+          return `It is <b>${this.gameState.currentPlayer}</b>'s turn.`
       }
       return 'UHHH'
     },
@@ -137,20 +123,20 @@ export default {
           ) {
             return true
           }
-          return this.taxSubmitted.length > 0
+          return this.usersState.taxSubmitted
         case 'PLAY':
-          return this.turn === this.name
+          return this.gameState.currentPlaye === this.userState.name
       }
       return false
     },
     passButtonDisabled: function() {
-      if (this.gameState === 'PLAY' && this.topDeckCard !== 0) {
+      if (this.gameState.state === 'PLAY' && this.currentCard !== 0) {
         return false
       }
       return true
     },
     mandatoryTax: function() {
-      if (this.gameState !== 'TAX') {
+      if (this.gameState.state !== 'TAX') {
         return 0
       } else {
         if (this.playerRole === 'GP') {
@@ -162,94 +148,52 @@ export default {
         }
       }
     },
-    taxSubmitted: function() {
-      let index = this.users.map(user => user.name).indexOf(this.name)
-      if (index !== -1) {
-        return this.users[index].taxCards
-      }
-      return []
-    }
+    // taxSubmitted: function() {
+    //   let index = this.userList.map(user => user.name).indexOf(this.userState.name)
+    //   if (index !== -1) {
+    //     return this.user[index].taxCards
+    //   }
+    //   return []
+    // },
+    ...mapState(['userList', 'gameState', 'userState'])
   },
   mounted() {
-    this.$socket.removeAllListeners()
+    // // checking if current room was deleted
+    // if (!this.rooms.includes(this.$route.params.room)) {
+    //   this.$router.push({ name: 'Home' })
+    // }
+    
 
-    this.$socket.on('room-update', rooms => {
-      this.rooms = rooms.map(room => room.name) // i only care about room names
-      rooms.forEach(room => {
-        if (room.name === this.$route.params.room) {
-          this.users = room.users // saving users
-          this.gameState = room.state
-          this.turn = room.currentPlayer
-        }
-      })
-
-      let numUsers = 0
-      // update cards
-      this.users.forEach(user => {
-        if (user.name === this.name) {
-          this.cards = user.cards
-        }
-        if (!user.left) {
-          numUsers++
-        }
-      })
-
-      if (numUsers < 4) {
-        this.$socket.emit('room-removed', this.$route.params.room)
-      }
-
-      // checking if current room was deleted
-      if (!this.rooms.includes(this.$route.params.room)) {
-        this.$router.push({ name: 'Home' })
-      }
-    })
-
-    this.$socket.emit('request-rooms')
-
-    this.$socket.on('socketid', socketID => {
-      // if socket is already in list of rooms, be that guy (for vue reloading)
-      this.users.forEach(user => {
-        if (user.socketID === socketID) {
-          this.name = user.name
-          this.$emit('name-set', this.name)
-        }
-      })
-    })
-    // i only do this because for some reason, this.$socket.id is undefined
-    this.$socket.emit('request-socketid')
-
-    this.$socket.emit('request-rooms') // megadumb
-
-    this.$socket.on('revolution-timer-update', timeLeft => {
-      this.revolutionTimeLeft = timeLeft
-    })
-
-    this.$socket.on('disconnect', reason => {
-      if (reason === 'io client disconnect') {
-        this.$socket.emit('user-left', this.$route.params.room)
-      }
-    })
+    // this.$socket.on('socketid', socketID => {
+    //   // if socket is already in list of rooms, be that guy (for vue reloading)
+    //   this.users.forEach(user => {
+    //     if (user.socketID === socketID) {
+    //       this.name = user.name
+    //       this.$emit('name-set', this.name)
+    //     }
+    //   })
+    // })
   },
   methods: {
     mainButtonClick() {
-      switch (this.gameState) {
+      switch (this.gameState.state) {
         case 'REVOLUTION':
-          this.$socket.emit('revolution', this.$route.params.room)
+          this.$socket.emit('call-revolution', this.$route.params.room)
           return
         case 'TAX':
           this.$socket.emit(
-            'tax-select',
+            'select-tax',
             this.$route.params.room,
             this.selectedCards
           )
           return
         case 'PLAY':
-          this.$socket.emit('play', this.$route.params.room, this.selectedCards)
+          this.$socket.emit('play-hand', this.$route.params.room, this.selectedCards)
           return
       }
     },
     passButtonClick() {
-      this.$socket.emit('pass', this.$route.params.room)
+      this.$socket.emit('pass-turn', this.$route.params.room)
     },
     cardSelectChange(cardsSelectedState) {
       let selectedCards = []
@@ -262,6 +206,7 @@ export default {
     }
   },
   beforeRouteLeave(to, from, next) {
+    // need a way to prevent this once the game ends...
     if (to.path === '/home') {
       next()
     } else {

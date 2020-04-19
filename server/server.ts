@@ -308,6 +308,7 @@ function emitGameState(room: Room) {
 
 function emitUserState(user: User) {
   let userState = {
+    name: user.name,
     cards: user.cards,
     taxSubmitted: user.taxSubmitted,
     taxCards: user.taxCards

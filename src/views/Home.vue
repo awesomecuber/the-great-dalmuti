@@ -2,13 +2,13 @@
   <div class="home">
     <center>
       <h3>Rooms:</h3>
-      <div class="room" v-for="(room, index) in rooms" :key="index">
+      <div class="room" v-for="(room, index) in roomList" :key="index">
         <button :disabled="room.state !== 'LOBBY'" @click="join(room.name)">
           {{ room.name }}
           <span v-if="room.state !== 'LOBBY'"> (started)</span>
         </button>
         <button @click="remove(room.name)">remove!</button>
-        <p>online: {{ room.users.length }}</p>
+        <p>online: {{ roomList.playerCount }}</p>
       </div>
       <form @submit.prevent="create">
         <input type="text" v-model="newRoom" />
@@ -19,27 +19,20 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
+
 export default {
   name: 'Home',
   data() {
     return {
-      rooms: [],
       newRoom: ''
     }
   },
-  mounted() {
-    this.$socket.removeAllListeners()
-
-    this.$socket.on('room-update', rooms => {
-      this.rooms = rooms
-    })
-
-    this.$socket.emit('request-rooms')
-  },
+  computed: mapState(['roomList']),
   methods: {
     create() {
       if (this.newRoom !== '') {
-        this.$socket.emit('room-created', this.newRoom)
+        this.$socket.emit('create-room', this.newRoom)
         this.newRoom = ''
       }
     },
@@ -47,7 +40,7 @@ export default {
       this.$router.push('/room/' + room + '/lobby')
     },
     remove(room) {
-      this.$socket.emit('room-removed', room)
+      this.$socket.emit('remove-room', room)
     }
   }
 }
