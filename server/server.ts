@@ -33,8 +33,11 @@ interface Room {
   currentCard: number
   currentCardCount: number
   users: User[]
-  // revolution timer
+  revolutionTimer: number
+  revolutionInterval: NodeJS.Timeout
 }
+
+const REVOLUTION_LENGTH = 5
 
 let rooms: Room[] = []
 
@@ -50,7 +53,9 @@ io.on('connection', socket => {
         currentCard: 0,
         currentCardCount: 0,
         state: GameState.Lobby,
-        users: []
+        users: [],
+        revolutionTimer: REVOLUTION_LENGTH + 1,
+        revolutionInterval: null
       })
       io.emit('room-update', rooms)
     }
@@ -112,7 +117,9 @@ io.on('connection', socket => {
   })
 
   socket.on('revolution', (roomName: string) => {
-    // how the  heck am i gonna stop the revolution timer interval thing
+    let room = getRoom(roomName)
+    clearInterval(room.revolutionInterval)
+    room.revolutionTimer = REVOLUTION_LENGTH + 1
   })
 
   socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
@@ -202,15 +209,15 @@ function startGame(room: Room) {
 
   room.state = GameState.Revolution
 
-  let revolutionTimer = 6
-  let revolutionInterval = setInterval(() => {
-    revolutionTimer--
-    if (revolutionTimer >= 0) {
-      io.emit('revolution-timer-update', revolutionTimer)
+  room.revolutionInterval = setInterval(() => {
+    room.revolutionTimer--
+    if (room.revolutionTimer >= 0) {
+      io.emit('revolution-timer-update', room.revolutionTimer)
     } else {
       room.state = GameState.Tax
       io.emit('room-update', rooms)
-      clearInterval(revolutionInterval)
+      clearInterval(room.revolutionInterval)
+      room.revolutionTimer = REVOLUTION_LENGTH + 1
     }
   }, 1000)
 }
