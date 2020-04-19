@@ -46,7 +46,7 @@ const JOKER = 99
 let rooms: Room[] = []
 
 io.on('connection', socket => {
-  socket.on('room-created', (roomName: string) => {
+  socket.on('create-room', (roomName: string) => {
     if (rooms.map(room => room.name).includes(roomName)) { // dumb
       rooms.push({
         name: roomName,
@@ -64,14 +64,14 @@ io.on('connection', socket => {
     }
   })
 
-  socket.on('room-removed', (roomName: string) => {
+  socket.on('remove-room', (roomName: string) => {
     if (rooms.map(room => room.name).includes(roomName)) {
       rooms = rooms.filter(room => room.name !== roomName)
       emitRoomList()
     }
   })
 
-  socket.on('user-joined', (roomName: string, username: string) => {
+  socket.on('join-room', (roomName: string, username: string) => {
     let room = getRoom(roomName)
     room.users.push({
       socketID: socket.id,
@@ -88,7 +88,7 @@ io.on('connection', socket => {
     emitUserList(room)
   })
 
-  socket.on('user-left', (roomName: string) => {
+  socket.on('leave-room', (roomName: string) => {
     let room = getRoom(roomName)
     if (room && room.users.map(user => user.socketID).includes(socket.id)) {
       if (room.state === GameState.Play) {
@@ -105,7 +105,7 @@ io.on('connection', socket => {
     }
   })
 
-  socket.on('ready-toggle', (roomName: string, readyStatus: boolean) => {
+  socket.on('toggle-ready', (roomName: string, readyStatus: boolean) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
     if (user) {
@@ -122,16 +122,17 @@ io.on('connection', socket => {
           })
         if (shouldStart) {
           startGame(room)
+
           emitRoomList() // joinable is changed
           emitGameState(room)
-          room.users.forEach(user => emitUserState(user))
+          emitAllUserState(room)
         }
       }
       emitUserList(room)
     }
   })
 
-  socket.on('revolution', (roomName: string) => {
+  socket.on('call-revolution', (roomName: string) => {
     // TODO: different handling for greater revolution
     let room = getRoom(roomName)
     if (room) {
@@ -143,10 +144,10 @@ io.on('connection', socket => {
     }
   })
 
-  socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
+  socket.on('select-tax', (roomName: string, selectedCards: number[]) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
-    if (user) {
+    if (user && !user.taxSubmitted) {
       let index = room.users.indexOf(user)
       if (
         index === 0 &&
@@ -170,12 +171,12 @@ io.on('connection', socket => {
       if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
         taxSelected(room)
         emitGameState(room)
-        room.users.forEach(user => emitUserState(user))
+        emitAllUserState(room)
       }
     }
   })
 
-  socket.on('play', (roomName: string, selectedCards: number[]) => {
+  socket.on('play-hand', (roomName: string, selectedCards: number[]) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
 
@@ -214,12 +215,19 @@ io.on('connection', socket => {
             user.won = biggestWon + 1
             if (remainingPlayers === 1) {
               restart(room)
-              room.users.forEach(user => emitUserState(user))
+              emitUserList(room) // everything reset
+              emitGameState(room) // lobby
+              emitAllUserState(room) // everything reset
+            } else {
+              emitUserList(room) // card count+won
+              emitGameState(room) // current player etc
+              emitUserState(user) // player lost cards
             }
+          } else {
+            emitUserList(room) // card count
+            emitGameState(room) // current player etc
+            emitUserState(user) // player lost cards
           }
-          emitUserList(room) // card count
-          emitGameState(room) // current player etc
-          emitUserState(user) // player lost cards
         } else {
           // not a valid play
           // emit something
@@ -231,7 +239,7 @@ io.on('connection', socket => {
     }
   })
 
-  socket.on('pass', (roomName: string) => {
+  socket.on('pass-turn', (roomName: string) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
 
@@ -301,6 +309,10 @@ function emitUserState(user: User) {
   io.to(user.socketID).emit('user-state-update', userState)
 }
 
+function emitAllUserState(room: Room) {
+  room.users.forEach(user => emitUserState(user))
+}
+
 function startGame(room: Room) {
   if (room.firstRound) {
     shuffle(room.users)
@@ -346,7 +358,7 @@ function startGame(room: Room) {
     } else {
       room.state = GameState.Tax
       startTax(room)
-      room.users.forEach(user => emitUserState(user))
+      emitAllUserState(room)
 
       clearInterval(room.revolutionInterval)
     }
