@@ -89,7 +89,9 @@ io.on('connection', socket => {
 
     if (room.state !== GameState.Play) {
       room.users = room.users.filter(user => user.socketID !== socket.id)
-      // if its tax phase, figure out if taxes need to be redone
+      if (room.state === GameState.Tax) {
+        startTax(getRoom(roomName))
+      }
     } else {
       getUserByRoom(room, socket.id).left = true
     }
@@ -132,14 +134,14 @@ io.on('connection', socket => {
     if (
       index === 0 &&
       !room.users[0].taxSubmitted &&
-      selectedCards.length == 2
+      selectedCards.length === 2
     ) {
       room.users[0].taxSubmitted = true
       room.users[0].taxCards = selectedCards
     } else if (
       index === 1 &&
       !room.users[1].taxSubmitted &&
-      selectedCards.length == 1
+      selectedCards.length === 1
     ) {
       room.users[1].taxSubmitted = true
       room.users[1].taxCards = selectedCards
@@ -183,8 +185,8 @@ function startGame(room: Room) {
 
   let deck = []
   let maxCard = 0 // more sophisticated algorithm would be good
-  if (room.users.length == 4) maxCard = 10
-  else if (room.users.length == 5) maxCard = 11
+  if (room.users.length === 4) maxCard = 10
+  else if (room.users.length === 5) maxCard = 11
   else maxCard = 12
 
   for (let i = 1; i <= maxCard; i++) {
