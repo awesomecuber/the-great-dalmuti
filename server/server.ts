@@ -38,6 +38,7 @@ interface Room {
 }
 
 const REVOLUTION_LENGTH = 5
+const CARD_ORDER = (a: number, b: number) => a - b
 
 let rooms: Room[] = []
 
@@ -120,6 +121,8 @@ io.on('connection', socket => {
     let room = getRoom(roomName)
     clearInterval(room.revolutionInterval)
     room.revolutionTimer = REVOLUTION_LENGTH + 1
+    room.state = GameState.Play
+    io.emit('room-update', rooms)
   })
 
   socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
@@ -141,6 +144,8 @@ io.on('connection', socket => {
       room.users[1].taxSubmitted = true
       room.users[1].taxCards = selectedCards
     }
+
+    // everyone else should have tax submitted anyways
     if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
       taxSelected(room)
     }
@@ -204,7 +209,7 @@ function startGame(room: Room) {
   }
 
   for (let i = 0; i < room.users.length; i++) {
-    room.users[i].cards.sort((a, b) => a - b)
+    room.users[i].cards.sort(CARD_ORDER)
   }
 
   room.state = GameState.Revolution
@@ -215,11 +220,31 @@ function startGame(room: Room) {
       io.emit('revolution-timer-update', room.revolutionTimer)
     } else {
       room.state = GameState.Tax
+      startTax(room)
       io.emit('room-update', rooms)
+
       clearInterval(room.revolutionInterval)
       room.revolutionTimer = REVOLUTION_LENGTH + 1
     }
   }, 1000)
+}
+
+function startTax(room: Room) {
+  room.users.forEach((user, i) => {
+    if (i === room.users.length - 1) {
+      // greater pion
+      user.taxCards = user.cards.slice(0, 2)
+      user.taxSubmitted = true
+    } else if (i === room.users.length - 2) {
+      // lesser pion
+      user.taxCards = user.cards.slice(0, 1)
+      user.taxSubmitted = true
+    } else if (i >= 2) {
+      // merchants
+      user.taxCards = []
+      user.taxSubmitted = true
+    }
+  })
 }
 
 function taxSelected(room: Room) {
@@ -228,29 +253,35 @@ function taxSelected(room: Room) {
   let lp = room.users[room.users.length - 2]
   let gp = room.users[room.users.length - 1]
 
-  // greater trade
-  gd.cards.splice(gd.cards.indexOf(gd.taxCards[0]), 1)
-  gd.cards.splice(gd.cards.indexOf(gd.taxCards[1]), 1)
-  gd.cards.push(...gp.cards.splice(0, 2))
-  gp.cards.push(...gd.taxCards)
-  gd.cards.sort((a, b) => a - b)
-  gp.cards.sort((a, b) => a - b)
-
-  gd.taxCards = []
-  gd.taxSubmitted = false
-
-  // lesser trade
-  ld.cards.splice(ld.cards.indexOf(ld.taxCards[0]), 1)
-  ld.cards.push(...lp.cards.splice(0, 1))
-  lp.cards.push(...ld.taxCards)
-  ld.cards.sort((a, b) => a - b)
-  lp.cards.sort((a, b) => a - b)
-
-  ld.taxCards = []
-  ld.taxSubmitted = false
+  tradeTax(gd, gp)
+  tradeTax(ld, lp)
 
   room.state = GameState.Play
   room.currentPlayer = gd.name
+}
+
+function tradeTax(a: User, b: User) {
+  // remove tax cards from users
+  a.taxCards.forEach(taxCard => {
+    a.cards.splice(a.cards.indexOf(taxCard), 1)
+  })
+  b.taxCards.forEach(taxCard => {
+    b.cards.splice(b.cards.indexOf(taxCard), 1)
+  })
+
+  // give cards to the other
+  a.cards.push(...b.taxCards)
+  b.cards.push(...a.taxCards)
+
+  // sort hands
+  a.cards.sort(CARD_ORDER)
+  b.cards.sort(CARD_ORDER)
+
+  a.taxCards = []
+  a.taxSubmitted = false
+
+  b.taxCards = []
+  b.taxSubmitted = false
 }
 
 function getRoom(roomName: string): Room {
