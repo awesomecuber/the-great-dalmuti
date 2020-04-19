@@ -5,13 +5,17 @@ import io from 'socket.io-client'
 import store from './store'
 
 Vue.config.productionTip = false
+
 let socket = io(
   process.env.NODE_ENV === 'production'
     ? 'fuckmyass.com'
     : 'http://localhost:3000'
 )
 
-Vue.prototype.$socket = socket
+socket.on('room-list-update', roomList => store.dispatch('updateRoomList', { roomList }))
+socket.on('user-list-update', userList => store.dispatch('updateUserList', { userList }))
+socket.on('game-state-update', gameState => store.dispatch('updateGameState', { gameState }))
+socket.on('user-state-update', userState => store.dispatch('updateUserState', { userState }))
 
 new Vue({
   router,
