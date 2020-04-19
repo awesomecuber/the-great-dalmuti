@@ -46,10 +46,8 @@ const JOKER = 99
 let rooms: Room[] = []
 
 io.on('connection', socket => {
-  
-
   socket.on('room-created', (roomName: string) => {
-    if (rooms.filter(room => roomName === room.name).length === 0) { // dumb
+    if (rooms.map(room => room.name).includes(roomName)) { // dumb
       rooms.push({
         name: roomName,
         trickLead: '',
@@ -62,15 +60,14 @@ io.on('connection', socket => {
         revolutionInterval: null,
         firstRound: true
       })
-      // emit update
+      emitRoomList()
     }
   })
 
   socket.on('room-removed', (roomName: string) => {
-    let sizeBefore = rooms.length
-    rooms = rooms.filter(room => room.name !== roomName)
-    if (sizeBefore !== rooms.length) {
-      // emit update
+    if (rooms.map(room => room.name).includes(roomName)) {
+      rooms = rooms.filter(room => room.name !== roomName)
+      emitRoomList()
     }
   })
 
@@ -86,85 +83,103 @@ io.on('connection', socket => {
       taxCards: [],
       taxSubmitted: false
     })
-    // emit update
+    socket.join(room.name)
+    emitRoomList() // player count change
+    emitUserList(room)
   })
 
   socket.on('user-left', (roomName: string) => {
     let room = getRoom(roomName)
-
-    if (room.state !== GameState.Play) {
-      room.users = room.users.filter(user => user.socketID !== socket.id)
-      if (room.state === GameState.Tax) {
-        startTax(getRoom(roomName))
+    if (room && room.users.map(user => user.socketID).includes(socket.id)) {
+      if (room.state === GameState.Play) {
+        getUserByRoom(room, socket.id).left = true
+      } else {
+        room.users = room.users.filter(user => user.socketID !== socket.id)
+        if (room.state === GameState.Tax) {
+          startTax(getRoom(roomName))
+        }
       }
-    } else {
-      getUserByRoom(room, socket.id).left = true
+      socket.leave(room.name)
+      emitRoomList() // player count change
+      emitUserList(room)
     }
-    // emit update
   })
 
   socket.on('ready-toggle', (roomName: string, readyStatus: boolean) => {
     let room = getRoom(roomName)
-
-    getUserByRoom(room, socket.id).ready = readyStatus
-    // check if game should start
-    if (room.state === GameState.Lobby && room.users.length >= 4) {
-      let shouldStart = true
-      room.users
-        .map(user => user.ready)
-        .forEach(ready => {
-          if (!ready) {
-            shouldStart = false
-          }
-        })
-      if (shouldStart) {
-        startGame(room)
+    let user = getUserByRoom(room, socket.id)
+    if (user) {
+      user.ready = readyStatus
+      // check if game should start
+      if (room.state === GameState.Lobby && room.users.length >= 4) {
+        let shouldStart = true
+        room.users
+          .map(user => user.ready)
+          .forEach(ready => {
+            if (!ready) {
+              shouldStart = false
+            }
+          })
+        if (shouldStart) {
+          startGame(room)
+          emitRoomList() // joinable is changed
+          emitGameState(room)
+          room.users.forEach(user => emitUserState(user))
+        }
       }
+      emitUserList(room)
     }
-    // emit update
   })
 
   socket.on('revolution', (roomName: string) => {
     // TODO: different handling for greater revolution
     let room = getRoom(roomName)
-    clearInterval(room.revolutionInterval)
-    room.revolutionTimer = REVOLUTION_LENGTH + 1
-    room.state = GameState.Play
-    // emit update
+    if (room) {
+      clearInterval(room.revolutionInterval)
+      room.state = GameState.Play
+      room.currentPlayer = room.users[0].name
+
+      emitGameState(room)
+    }
   })
 
   socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
     let room = getRoom(roomName)
+    let user = getUserByRoom(room, socket.id)
+    if (user) {
+      let index = room.users.indexOf(user)
+      if (
+        index === 0 &&
+        !user.taxSubmitted &&
+        selectedCards.length === 2
+      ) {
+        user.taxSubmitted = true
+        user.taxCards = selectedCards
+        emitUserState(user)
+      } else if (
+        index === 1 &&
+        !user.taxSubmitted &&
+        selectedCards.length === 1
+      ) {
+        user.taxSubmitted = true
+        user.taxCards = selectedCards
+        emitUserState(user)
+      }
 
-    let index = room.users.map(user => user.socketID).indexOf(socket.id)
-    if (
-      index === 0 &&
-      !room.users[0].taxSubmitted &&
-      selectedCards.length === 2
-    ) {
-      room.users[0].taxSubmitted = true
-      room.users[0].taxCards = selectedCards
-    } else if (
-      index === 1 &&
-      !room.users[1].taxSubmitted &&
-      selectedCards.length === 1
-    ) {
-      room.users[1].taxSubmitted = true
-      room.users[1].taxCards = selectedCards
+      // everyone else should have tax submitted anyways
+      if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
+        taxSelected(room)
+        emitGameState(room)
+        room.users.forEach(user => emitUserState(user))
+      }
     }
-
-    // everyone else should have tax submitted anyways
-    if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
-      taxSelected(room)
-    }
-    // emit update
   })
 
   socket.on('play', (roomName: string, selectedCards: number[]) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
 
-    if (room.currentPlayer === user.name) {
+    if (user && room.currentPlayer === user.name) {
       let uniqueCards = [...new Set(selectedCards)]
       // selectedCards is sorted
       if (uniqueCards.length === 1 || uniqueCards[1] === JOKER) {
@@ -199,14 +214,19 @@ io.on('connection', socket => {
             user.won = biggestWon + 1
             if (remainingPlayers === 1) {
               restart(room)
+              room.users.forEach(user => emitUserState(user))
             }
           }
+          emitUserList(room) // card count
+          emitGameState(room) // current player etc
+          emitUserState(user) // player lost cards
         } else {
           // not a valid play
           // emit something
         }
       } else {
-        // emit error
+        // not a valid play
+        // emit something
       }
     }
   })
@@ -215,7 +235,7 @@ io.on('connection', socket => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
 
-    if (room.currentPlayer === user.name && room.trickLead !== user.name) {
+    if (user && room.currentPlayer === user.name && room.trickLead !== user.name) {
       let index = room.users.indexOf(user)
       let nextIndex = index === room.users.length - 1 ? 0 : index + 1
       while (room.users[nextIndex].left || room.users[nextIndex].won > 0) {
@@ -227,19 +247,13 @@ io.on('connection', socket => {
         room.currentCard = 0
         room.currentCardCount = 0
       }
+      emitGameState(room)
     } else {
       // emit error
     }
   })
 
-  // reconsider this
-  socket.on('request-rooms', () => {
-    socket.emit('room-update', rooms)
-  })
-
-  socket.on('request-socketid', () => {
-    socket.emit('socketid', socket.id)
-  })
+  emitRoomList()
 })
 
 function emitRoomList() {
@@ -250,7 +264,7 @@ function emitRoomList() {
       playerCount: room.users.filter(user => !user.left).length
     }
   })
-  // emit
+  io.emit('room-list-update', roomList)
 }
 
 function emitUserList(room: Room) {
@@ -263,7 +277,7 @@ function emitUserList(room: Room) {
       cardCount: user.cards.length
     }
   })
-  // emit
+  io.in(room.name).emit('user-list-update', userList)
 }
 
 function emitGameState(room: Room) {
@@ -275,14 +289,16 @@ function emitGameState(room: Room) {
     currentCardCount: room.currentCardCount,
     revolutionTimer: room.revolutionTimer
   }
+  io.in(room.name).emit('game-state-update', gameState)
 }
 
-function emitUserState(room: Room, user: User) {
+function emitUserState(user: User) {
   let userState = {
     cards: user.cards,
     taxSubmitted: user.taxSubmitted,
     taxCards: user.taxCards
   }
+  io.to(user.socketID).emit('user-state-update', userState)
 }
 
 function startGame(room: Room) {
@@ -326,11 +342,11 @@ function startGame(room: Room) {
   room.revolutionInterval = setInterval(() => {
     room.revolutionTimer--
     if (room.revolutionTimer >= 0) {
-      io.emit('revolution-timer-update', room.revolutionTimer)
+      emitGameState(room)
     } else {
       room.state = GameState.Tax
       startTax(room)
-      io.emit('room-update', rooms)
+      room.users.forEach(user => emitUserState(user))
 
       clearInterval(room.revolutionInterval)
     }
