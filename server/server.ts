@@ -33,6 +33,7 @@ interface Room {
   currentCard: number
   currentCardCount: number
   users: User[]
+  // revolution timer
 }
 
 let rooms: Room[] = []
@@ -64,65 +65,49 @@ io.on('connection', socket => {
   })
 
   socket.on('user-joined', (roomName: string, username: string) => {
-    rooms.forEach(room => {
-      if (room.name === roomName) {
-        room.users.push({
-          socketID: socket.id,
-          name: username,
-          ready: false,
-          left: false,
-          cards: [],
-          taxCards: [],
-          taxSubmitted: false
-        })
-      }
+    let room = getRoom(roomName)
+    room.users.push({
+      socketID: socket.id,
+      name: username,
+      ready: false,
+      left: false,
+      cards: [],
+      taxCards: [],
+      taxSubmitted: false
     })
     io.emit('room-update', rooms)
   })
 
   socket.on('user-left', (roomName: string) => {
-    rooms.forEach(room => {
-      if (room.name === roomName) {
-        if (room.state !== GameState.Play) {
-          room.users = room.users.filter(user => user.socketID !== socket.id)
-          // if its tax phase, figure out if taxes need to be redone
-        } else {
-          room.users.forEach(user => {
-            if (user.socketID === socket.id) {
-              user.left = true
-            }
-          })
-        }
-      }
-    })
+    let room = getRoom(roomName)
+
+    if (room.state !== GameState.Play) {
+      room.users = room.users.filter(user => user.socketID !== socket.id)
+      // if its tax phase, figure out if taxes need to be redone
+    } else {
+      getUserByRoom(room, socket.id).left = true
+    }
     io.emit('room-update', rooms)
   })
 
   socket.on('ready-toggle', (roomName: string, readyStatus: boolean) => {
-    // lmao this is very ugly
-    rooms.forEach(room => {
-      if (room.name === roomName) {
-        room.users.forEach(user => {
-          if (user.socketID === socket.id) {
-            user.ready = readyStatus
+    let room = getRoom(roomName)
+
+    getUserByRoom(room, socket.id).ready = readyStatus
+    // check if game should start
+    if (room.state === GameState.Lobby && room.users.length >= 4) {
+      let shouldStart = true
+      room.users
+        .map(user => user.ready)
+        .forEach(ready => {
+          if (!ready) {
+            shouldStart = false
           }
         })
-        // check if game should start
-        if (room.state === GameState.Lobby && room.users.length >= 4) {
-          let shouldStart = true
-          room.users
-            .map(user => user.ready)
-            .forEach(ready => {
-              if (!ready) {
-                shouldStart = false
-              }
-            })
-          if (shouldStart) {
-            startGame(room)
-          }
-        }
+      if (shouldStart) {
+        startGame(room)
       }
-    })
+    }
     io.emit('room-update', rooms)
   })
 
@@ -131,48 +116,43 @@ io.on('connection', socket => {
   })
 
   socket.on('tax-select', (roomName: string, selectedCards: number[]) => {
-    rooms.forEach(room => {
-      if (room.name === roomName) {
-        let index = room.users.map(user => user.socketID).indexOf(socket.id)
-        if (
-          index === 0 &&
-          !room.users[0].taxSubmitted &&
-          selectedCards.length == 2
-        ) {
-          room.users[0].taxSubmitted = true
-          room.users[0].taxCards = selectedCards
-        } else if (
-          index === 1 &&
-          !room.users[1].taxSubmitted &&
-          selectedCards.length == 1
-        ) {
-          room.users[1].taxSubmitted = true
-          room.users[1].taxCards = selectedCards
-        }
-        if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
-          taxSelected(room)
-        }
-      }
-    })
+    let room = getRoom(roomName)
+
+    let index = room.users.map(user => user.socketID).indexOf(socket.id)
+    if (
+      index === 0 &&
+      !room.users[0].taxSubmitted &&
+      selectedCards.length == 2
+    ) {
+      room.users[0].taxSubmitted = true
+      room.users[0].taxCards = selectedCards
+    } else if (
+      index === 1 &&
+      !room.users[1].taxSubmitted &&
+      selectedCards.length == 1
+    ) {
+      room.users[1].taxSubmitted = true
+      room.users[1].taxCards = selectedCards
+    }
+    if (room.users[0].taxSubmitted && room.users[1].taxSubmitted) {
+      taxSelected(room)
+    }
     io.emit('room-update', rooms)
   })
 
   socket.on('play', (roomName: string, selectedCards: number[]) => {
-    rooms.forEach(room => {
-      if (room.name === roomName) {
-        room.users.forEach(user => {
-          if (user.socketID === socket.id) {
-            if (room.currentCard === 0) {
-              // check if selectedCards is valid
-            } else if (selectedCards.length === room.currentCardCount) {
-              // check if selectedCards is valid
-            } else {
-              // definitely not valid
-            }
-          }
-        })
+    let room = getRoom(roomName)
+    let user = getUserByRoom(room, socket.id)
+
+    if (user.socketID === socket.id) {
+      if (room.currentCard === 0) {
+        // check if selectedCards is valid
+      } else if (selectedCards.length === room.currentCardCount) {
+        // check if selectedCards is valid
+      } else {
+        // definitely not valid
       }
-    })
+    }
   })
 
   socket.on('pass', (roomName: string) => {})
@@ -264,6 +244,31 @@ function taxSelected(room: Room) {
 
   room.state = GameState.Play
   room.currentPlayer = gd.name
+}
+
+function getRoom(roomName: string): Room {
+  rooms.forEach(room => {
+    if (room.name === roomName) {
+      return room
+    }
+  })
+  return null
+}
+
+function getUser(roomName: string, socketID: any): User {
+  return getUserByRoom(getRoom(roomName), socketID)
+}
+
+function getUserByRoom(room: Room, socketID: any): User {
+  if (!room) {
+    return null
+  }
+  room.users.forEach(user => {
+    if (user.socketID === socketID) {
+      return user
+    }
+  })
+  return null
 }
 
 function shuffle(a: any[]) {
