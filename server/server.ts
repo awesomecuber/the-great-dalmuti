@@ -100,6 +100,12 @@ io.on('connection', socket => {
         }
       }
       socket.leave(room.name)
+      if (room.users.filter(user => !user.left).length < 4) {
+        rooms = rooms.filter(room => room.name !== roomName)
+      } else if (room.state === GameState.Tax) {
+        emitAllUserState(room)
+      }
+
       emitRoomList() // player count change
       emitUserList(room)
     }
