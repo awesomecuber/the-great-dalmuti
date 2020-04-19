@@ -200,7 +200,7 @@ export default {
 
       // checking if current room was deleted
       if (!this.rooms.includes(this.$route.params.room)) {
-        this.$router.push('/home')
+        this.$router.push({ name: 'Home' })
       }
     })
 
