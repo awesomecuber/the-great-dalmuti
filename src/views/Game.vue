@@ -43,14 +43,15 @@ export default {
   },
   data() {
     return {
-      selectedCards: [],
+      selectedCardIndexes: [],
       lastMoves: [
         '<i>geek</i> played <b>five 10s</b>',
         '<i>jon</i> played <b>five 9s</b>',
         '<i>nico</i> played <b>five 8s</b>',
         '<i>frogyfro</i> played <b>five 12s</b>',
         '<i>aidan</i> <b>passed</p>'
-      ]
+      ],
+      gameEnded: false
     }
   },
   computed: {
@@ -148,31 +149,26 @@ export default {
         }
       }
     },
-    // taxSubmitted: function() {
-    //   let index = this.users.map(user => user.name).indexOf(this.userState.name)
-    //   if (index !== -1) {
-    //     return this.user[index].taxCards
-    //   }
-    //   return []
-    // },
-    ...mapState(['users', 'gameState', 'userState'])
+    ...mapState(['users', 'gameState', 'userState']),
+    state: function() {
+      return this.gameState.state
+    },
+    roomName: function() {
+      return this.gameState.roomName
+    }
   },
-  mounted() {
-    // // checking if current room was deleted
-    // if (!this.rooms.includes(this.$route.params.room)) {
-    //   this.$router.push({ name: 'Home' })
-    // }
-    
-
-    // this.$socket.on('socketid', socketID => {
-    //   // if socket is already in list of rooms, be that guy (for vue reloading)
-    //   this.users.forEach(user => {
-    //     if (user.socketID === socketID) {
-    //       this.name = user.name
-    //       this.$emit('name-set', this.name)
-    //     }
-    //   })
-    // })
+  watch: {
+    state: function(newState) {
+      if (newState === 'LOBBY') {
+        this.gameEnded = true
+        this.$router.push('/room/' + this.$route.params.room + '/lobby')
+      }
+    },
+    roomName: function(newName) {
+      if (newName === '') {
+        this.$router.push('/home')
+      }
+    }
   },
   methods: {
     mainButtonClick() {
@@ -184,30 +180,26 @@ export default {
           this.$socket.emit(
             'select-tax',
             this.$route.params.room,
-            this.selectedCards
+            this.selectedCardIndexes
           )
           return
         case 'PLAY':
-          this.$socket.emit('play-hand', this.$route.params.room, this.selectedCards)
+          this.$socket.emit('play-hand', this.$route.params.room, this.selectedCardIndexes)
           return
       }
     },
     passButtonClick() {
       this.$socket.emit('pass-turn', this.$route.params.room)
     },
-    cardSelectChange(cardsSelectedState) {
-      let selectedCards = []
-      for (let i = 0; i < cardsSelectedState.length; i++) {
-        if (cardsSelectedState[i]) {
-          selectedCards.push(this.cards[i])
-        }
-      }
-      this.selectedCards = selectedCards
+    cardSelectChange(selectedCardIndexes) {
+      this.selectedCardIndexes = selectedCardIndexes
     }
   },
   beforeRouteLeave(to, from, next) {
-    // need a way to prevent this once the game ends...
     if (to.path === '/home') {
+      this.$socket.emit('user-left', this.$route.params.room)
+      next()
+    } else if (this.gameEnded) {
       next()
     } else {
       next(false)
