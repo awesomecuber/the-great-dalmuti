@@ -43,12 +43,27 @@ export default {
       if (this.selectable) {
         return this.userSelected
       } else {
-        return this.userState.taxCards
+        return this.userState.taxCardIndexes
       }
     },
     selectable: function() {
-      return !(this.gameState.state === 'REVOLUTION' || 
+      return !(this.gameState.state === 'REVOLUTION' ||
               (this.gameState.state === 'TAX' && this.userState.taxSubmitted))
+    },
+    cardLength: function() {
+      return this.userState.cards.length
+    }
+  },
+  watch: {
+    selectable: function(newSelectable, oldSelectable) {
+      if (oldSelectable === false && newSelectable === true) {
+        this.userSelected = []
+      }
+    },
+    cardLength: function(newLength, oldLength) {
+      if (newLength < oldLength) {
+        this.userSelected = []
+      }
     }
   },
   methods: {

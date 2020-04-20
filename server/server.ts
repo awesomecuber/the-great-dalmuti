@@ -47,7 +47,7 @@ let rooms: Room[] = []
 
 io.on('connection', socket => {
   socket.on('create-room', (roomName: string) => {
-    if (rooms.map(room => room.name).includes(roomName)) { // dumb
+    if (!rooms.map(room => room.name).includes(roomName)) { // dumb
       rooms.push({
         name: roomName,
         trickLead: '',
@@ -71,43 +71,61 @@ io.on('connection', socket => {
     }
   })
 
+  socket.on('enter-room', (roomName: string) => {
+    let room = getRoom(roomName)
+    if (room) {
+      socket.join(room.name)
+      emitUserList(room)
+    }
+  })
+
   socket.on('join-room', (roomName: string, username: string) => {
     let room = getRoom(roomName)
-    room.users.push({
-      socketID: socket.id,
-      name: username,
-      ready: false,
-      left: false,
-      won: 0,
-      cards: [],
-      taxCardIndexes: [],
-      taxSubmitted: false
-    })
-    socket.join(room.name)
-    emitRoomList() // player count change
-    emitUserList(room)
+
+    if (room && !room.users.map(user => user.name).includes(username)) {
+      room.users.push({
+        socketID: socket.id,
+        name: username,
+        ready: false,
+        left: false,
+        won: 0,
+        cards: [],
+        taxCardIndexes: [],
+        taxSubmitted: false
+      })
+      socket.join(room.name)
+      emitRoomList() // player count change
+      emitUserList(room)
+      emitUserState(getUserByRoom(room, socket.id))
+    }
   })
 
   socket.on('leave-room', (roomName: string) => {
     let room = getRoom(roomName)
-    if (room && room.users.map(user => user.socketID).includes(socket.id)) {
-      if (room.state === GameState.Play) {
-        getUserByRoom(room, socket.id).left = true
-      } else {
-        room.users = room.users.filter(user => user.socketID !== socket.id)
-        if (room.state === GameState.Tax) {
-          startTax(getRoom(roomName))
-        }
-      }
-      socket.leave(room.name)
-      if (room.users.filter(user => !user.left).length < 4) {
-        rooms = rooms.filter(room => room.name !== roomName)
-      } else if (room.state === GameState.Tax) {
-        emitAllUserState(room)
-      }
+    let user = getUserByRoom(room, socket.id)
 
-      emitRoomList() // player count change
-      emitUserList(room)
+    if (room) {
+      console.log((user ? user.name : '(a ghost)') + ' left from ' + room.name)
+      socket.leave(room.name)
+      if (room.users.map(user => user.socketID).includes(socket.id)) {
+        if (room.state === GameState.Play) {
+          user.left = true
+          // TODO: if the player is the trick lead and current player, pass trick lead to next person
+        } else {
+          room.users = room.users.filter(user => user.socketID !== socket.id)
+          if (room.state === GameState.Tax) {
+            startTax(getRoom(roomName))
+          }
+        }
+        if (room.state !== GameState.Lobby && room.users.filter(user => !user.left).length < 4) {
+          rooms = rooms.filter(room => room.name !== roomName)
+        } else if (room.state === GameState.Tax) {
+          emitAllUserState(room)
+        }
+
+        emitRoomList() // player count change
+        emitUserList(room)
+      }
     }
   })
 
@@ -205,8 +223,8 @@ io.on('connection', socket => {
           // start of the hand || valid hand
           room.currentCardCount = selectedCards.length
           room.currentCard = selectedCards[0]
-          room.currentPlayer = room.users[nextIndex].name
           room.trickLead = room.currentPlayer
+          room.currentPlayer = room.users[nextIndex].name
           removeCards(user, selectedCards)
 
           // check if user won
@@ -249,7 +267,9 @@ io.on('connection', socket => {
   socket.on('pass-turn', (roomName: string) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
-
+    // we're increasing nextIndex until we hit either:
+    // - a player who hasn't left and hasn't won
+    // - a player who is the trick lead
     if (user && room.currentPlayer === user.name && room.trickLead !== user.name) {
       let index = room.users.indexOf(user)
       let nextIndex = index === room.users.length - 1 ? 0 : index + 1
@@ -362,12 +382,14 @@ function startGame(room: Room) {
 
   room.revolutionInterval = setInterval(() => {
     room.revolutionTimer--
+    console.log(room.revolutionTimer)
     if (room.revolutionTimer >= 0) {
       emitGameState(room)
     } else {
       room.state = GameState.Tax
       startTax(room)
       emitAllUserState(room)
+      emitGameState(room)
 
       clearInterval(room.revolutionInterval)
     }
@@ -459,12 +481,13 @@ function restart(room: Room) {
 }
 
 function getRoom(roomName: string): Room {
+  let roomFound = null
   rooms.forEach(room => {
     if (room.name === roomName) {
-      return room
+      roomFound = room
     }
   })
-  return null
+  return roomFound
 }
 
 function getUser(roomName: string, socketID: string): User {
@@ -472,15 +495,15 @@ function getUser(roomName: string, socketID: string): User {
 }
 
 function getUserByRoom(room: Room, socketID: string): User {
-  if (!room) {
-    return null
+  let userFound = null
+  if (room) {
+    room.users.forEach(user => {
+      if (user.socketID === socketID) {
+        userFound = user
+      }
+    })
   }
-  room.users.forEach(user => {
-    if (user.socketID === socketID) {
-      return user
-    }
-  })
-  return null
+  return userFound
 }
 
 function indexesToCards(user: User, indexes: number[]) {

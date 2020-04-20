@@ -14,7 +14,7 @@ export default new Vuex.Store({
       trickLead: '',
       currentCard: 0,
       currentCardCount: 0,
-      revolutionTime: 0
+      revolutionTimer: 0
     },
     userState: {
       name: '',
@@ -26,7 +26,6 @@ export default new Vuex.Store({
   mutations: {
     SET_ROOM_LIST(state, roomList) {
       state.rooms = roomList
-
     },
     SET_USER_LIST(state, userList) {
       state.users = userList
@@ -49,8 +48,8 @@ export default new Vuex.Store({
     SET_CURRENT_CARD_COUNT(state, currentCardCount) {
       state.gameState.currentCardCount = currentCardCount
     },
-    SET_REVOLUTION_TIME(state, revolutionTime) {
-      state.gameState.revolutionTime = revolutionTime
+    SET_REVOLUTION_TIMER(state, revolutionTimer) {
+      state.gameState.revolutionTimer = revolutionTimer
     },
     SET_NAME(state, name) {
       state.userState.name = name
@@ -62,6 +61,9 @@ export default new Vuex.Store({
       state.userState.taxSubmitted = taxInfo.taxSubmitted
       state.userState.taxCardIndexes = taxInfo.taxCardIndexes
     },
+    RESET_USER_LIST(state) {
+      state.users = []
+    },
     RESET_GAME_STATE(state) {
       state.gameState.roomName = ''
       state.gameState.state = ''
@@ -69,7 +71,7 @@ export default new Vuex.Store({
       state.gameState.trickLead = ''
       state.gameState.currentCard = 0
       state.gameState.currentCardCount = 0
-      state.gameState.revolutionTime = 0
+      state.gameState.revolutionTimer = 0
     },
     RESET_USER_STATE(state) {
       state.userState.name = ''
@@ -81,16 +83,18 @@ export default new Vuex.Store({
   actions: {
     updateRoomList({ commit, state }, roomList) {
       commit('SET_ROOM_LIST', roomList)
-      if (!roomList.includes(state.gameState.roomName)) {
+      if (state.gameState.roomName !== '' && !roomList.map(room => room.name).includes(state.gameState.roomName)) {
         // room deleted
+        commit('RESET_USER_LIST')
         commit('RESET_GAME_STATE')
         commit('RESET_USER_STATE')
       }
     },
     updateUserList({ commit, state }, userList) {
       commit('SET_USER_LIST', userList)
-      if (!userList.includes(state.userState.roomName)) {
+      if (state.userState.name !== '' && !userList.map(user => user.name).includes(state.userState.name)) {
         // user removed
+        commit('RESET_USER_LIST')
         commit('RESET_GAME_STATE')
         commit('RESET_USER_STATE')
       }
@@ -114,8 +118,8 @@ export default new Vuex.Store({
       if (state.gameState.currentCardCount !== gameState.currentCardCount) {
         commit('SET_CURRENT_CARD_COUNT', gameState.currentCardCount)
       }
-      if (state.gameState.revolutionTime !== gameState.revolutionTime) {
-        commit('SET_REVOLUTION_TIME', gameState.revolutionTime)
+      if (state.gameState.revolutionTimer !== gameState.revolutionTimer) {
+        commit('SET_REVOLUTION_TIMER', gameState.revolutionTimer)
       }
     },
     updateUserState({ commit, state }, userState) {
@@ -143,6 +147,11 @@ export default new Vuex.Store({
           taxCardIndexes: userState.taxCardIndexes
         })
       }
+    },
+    resetState({ commit }) {
+      commit('RESET_USER_LIST')
+      commit('RESET_GAME_STATE')
+      commit('RESET_USER_STATE')
     }
   }
 })

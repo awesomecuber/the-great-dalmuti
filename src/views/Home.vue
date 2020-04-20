@@ -3,12 +3,12 @@
     <center>
       <h3>Rooms:</h3>
       <div class="room" v-for="(room, index) in rooms" :key="index">
-        <button :disabled="room.state !== 'LOBBY'" @click="join(room.name)">
+        <button :disabled="!room.joinable" @click="join(room.name)">
           {{ room.name }}
-          <span v-if="room.state !== 'LOBBY'"> (started)</span>
+          <span v-if="!room.joinable"> (started)</span>
         </button>
         <button @click="remove(room.name)">remove!</button>
-        <p>online: {{ rooms.playerCount }}</p>
+        <p>online: {{ room.playerCount }}</p>
       </div>
       <form @submit.prevent="create">
         <input type="text" v-model="newRoom" />
@@ -37,6 +37,7 @@ export default {
       }
     },
     join(room) {
+      this.$socket.emit('enter-room', room)
       this.$router.push('/room/' + room + '/lobby')
     },
     remove(room) {

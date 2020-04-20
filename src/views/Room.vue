@@ -28,12 +28,13 @@ export default {
   }),
   beforeMount() {
     window.onbeforeunload = () => {
-      this.$socket.emit('user-left', this.$route.params.room)
+      this.$socket.emit('leave-room', this.$route.params.room)
     }
   },
   methods: {
     leave() {
-      this.$socket.emit('user-left', this.$route.params.room)
+      this.$socket.emit('leave-room', this.$route.params.room)
+      this.$store.dispatch('resetState')
       this.$router.push('/home')
     }
   }

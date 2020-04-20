@@ -72,7 +72,7 @@ export default {
     displayText: function() {
       switch (this.gameState.state) {
         case 'REVOLUTION':
-          return `Revolution Stage (${this.gameState.revolutionTime}s left): If you have two jokers, you can declare a revolution!`
+          return `Revolution Stage (${this.gameState.revolutionTimer}s left): If you have two jokers, you can declare a revolution!`
         case 'TAX':
           if (this.playerRole === 'GD') {
             return `Tax stage: Pick 2 cards to give to ${
@@ -96,7 +96,7 @@ export default {
       return 'UHHH'
     },
     mainButtonText: function() {
-      switch (this.gameState) {
+      switch (this.gameState.state) {
         case 'REVOLUTION':
           return this.playerRole === 'GP' ? 'Greater Revolution' : 'Revolution'
         case 'TAX':
@@ -107,32 +107,25 @@ export default {
       return 'UHHH'
     },
     mainButtonDisabled: function() {
-      switch (this.gameState) {
+      switch (this.gameState.state) {
         case 'REVOLUTION':
           var numJokers = 0
-          this.cards.forEach(card => {
+          this.userState.cards.forEach(card => {
             if (card === 99) {
               numJokers++
             }
           })
           return numJokers !== 2
         case 'TAX':
-          if (
-            this.playerRole === 'M' ||
-            this.playerRole === 'LP' ||
-            this.playerRole === 'GP'
-          ) {
-            return true
-          }
-          return this.usersState.taxSubmitted
+          return this.userState.taxSubmitted
         case 'PLAY':
-          return this.gameState.currentPlaye === this.userState.name
+          return this.gameState.currentPlayer !== this.userState.name
       }
       return false
     },
     passButtonDisabled: function() {
       if (this.gameState.state === 'PLAY' && this.currentCard !== 0) {
-        return false
+        return this.gameState.currentPlayer !== this.userState.name
       }
       return true
     },

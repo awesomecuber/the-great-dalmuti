@@ -4,7 +4,7 @@
     <br />
     <h3>Users:</h3>
     <div v-for="(user, index) in users" :key="index">
-      <p v-if="user.name === name">
+      <p v-if="user.name === userState.name">
         <b>{{ user.name }} </b>
         <button @click="toggleReady">ready: {{ ready ? 'yes' : 'no' }}</button>
         <button @click="remove">remove from lobby</button>
@@ -37,7 +37,7 @@ export default {
     }
   },
   computed: {
-    ...mapState(['users', 'gameState', 'userState']),
+    ...mapState(['rooms', 'users', 'gameState', 'userState']),
     state: function() {
       return this.gameState.state
     },
@@ -67,6 +67,11 @@ export default {
       if (newName === '') {
         this.$router.push('/home')
       }
+    },
+    rooms: function(newRooms) {
+      if (!newRooms.map(room => room.name).includes(this.$route.params.room)) {
+        this.$router.push('/home')
+      }
     }
   },
   methods: {
@@ -75,7 +80,7 @@ export default {
         this.nickInput !== '' &&
         !this.users.map(user => user.name).includes(this.nickInput)
       ) {
-        this.$socket.emit('join-room', this.$route.params.room, this.name)
+        this.$socket.emit('join-room', this.$route.params.room, this.nickInput)
       }
     },
     toggleReady() {
