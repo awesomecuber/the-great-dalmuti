@@ -20,7 +20,7 @@ export default new Vuex.Store({
       name: '',
       cards: [],
       taxSubmitted: false,
-      taxCards: []
+      taxCardIndexes: []
     }
   },
   mutations: {
@@ -60,7 +60,7 @@ export default new Vuex.Store({
     },
     SET_TAX_INFO(state, taxInfo) {
       state.userState.taxSubmitted = taxInfo.taxSubmitted
-      state.userState.taxCards = taxInfo.taxCards
+      state.userState.taxCardIndexes = taxInfo.taxCardIndexes
     },
     RESET_GAME_STATE(state) {
       state.gameState.roomName = ''
@@ -75,7 +75,7 @@ export default new Vuex.Store({
       state.userState.name = ''
       state.userState.cards = []
       state.userState.taxSubmitted = false
-      state.userState.taxCards = []
+      state.userState.taxCardIndexes = []
     }
   },
   actions: {
@@ -137,16 +137,12 @@ export default new Vuex.Store({
       if (!equal) {
         commit('SET_CARDS', userState.cards)
       }
-      if (
-        state.userState.taxSubmitted !== userState.taxSubmitted ||
-        state.userState.taxCards !== userState.taxCards
-      ) {
+      if (state.userState.taxSubmitted !== userState.taxSubmitted) {
         commit('SET_TAX_INFO', {
           taxSubmitted: userState.taxSubmitted,
-          taxCards: userState.taxCards
+          taxCardIndexes: userState.taxCardIndexes
         })
       }
     }
-  },
-  modules: {}
+  }
 })

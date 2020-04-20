@@ -31,9 +31,9 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import CardArea from '../components/CardArea.vue'
 import InfoArea from '../components/InfoArea.vue'
-import { mapState } from 'vuex'
 
 export default {
   name: 'Game',

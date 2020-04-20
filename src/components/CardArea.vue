@@ -3,27 +3,28 @@
     <div id="deck">
       <Card
         id="current-card"
-        :number="currentCard"
+        :number="gameState.currentCard"
         :large="true"
         :selected="false"
       />
-      <h3 id="current-card-count">x{{ currentCardCount }}</h3>
+      <h3 id="current-card-count">x{{ gameState.currentCardCount }}</h3>
     </div>
 
     <h3>Your hand:</h3>
     <div id="cards">
       <Card
-        v-for="(card, index) in playerCards"
+        v-for="(card, index) in userState.cards"
         @tap="click(index)"
         :key="index"
         :number="card"
-        :selected="selected[index]"
+        :selected="selected.includes(index)"
       />
     </div>
   </div>
 </template>
 
 <script>
+import { mapState } from 'vuex'
 import Card from './CardArea/Card.vue'
 
 export default {
@@ -33,64 +34,34 @@ export default {
   },
   data() {
     return {
-      selected: [],
-      selectable: false
+      userSelected: []
     }
   },
-  props: {
-    currentCard: Number,
-    currentCardCount: Number,
-    playerCards: Array,
-    mandatoryTaxed: Number,
-    taxSubmitted: Array
-  },
-  watch: {
-    playerCards: function() {
-      // this.initializeSelected()
+  computed: {
+    ...mapState(['gameState', 'userState']),
+    selected: function() {
+      if (this.selectable) {
+        return this.userSelected
+      } else {
+        return this.userState.taxCards
+      }
     },
-    taxSubmitted: function(newTax, oldTax) {
-      if (newTax.length !== oldTax.length) {
-        this.initializeSelected()
-      }
-      let same = true
-      for (let i = 0; i < newTax.length; i++) {
-        if (newTax[i] !== oldTax[i]) {
-          same = false
-        }
-      }
-      if (!same) {
-        this.initializeSelected()
-      }
+    selectable: function() {
+      return !(this.gameState.state === 'REVOLUTION' || 
+              (this.gameState.state === 'TAX' && this.userState.taxSubmitted))
     }
-  },
-  mounted() {
-    this.initializeSelected()
   },
   methods: {
-    initializeSelected() {
-      this.selected = []
-      for (let i = 0; i < this.playerCards.length; i++) {
-        this.selected.push(i < this.mandatoryTaxed)
-      }
-      this.selectable = this.mandatoryTaxed === 0
-
-      if (this.taxSubmitted.length > 0) {
-        this.selectable = false
-        let j = 0
-        for (let i = 0; i < this.selected.length; i++) {
-          if (this.taxSubmitted[j] === this.playerCards[i]) {
-            j++
-            this.selected[i] = true
-          }
-        }
-      }
-      this.$emit('card-select-change', this.selected)
-    },
     click(index) {
       if (this.selectable) {
-        this.selected.splice(index, 1, !this.selected[index])
+        if (this.userSelected.includes(index)) {
+          this.userSelected.splice(this.userSelected.indexOf(index), 1)
+        } else {
+          this.userSelected.push(index)
+          this.userSelected.sort((a, b) => a - b)
+        }
+        this.$emit('card-select-change', this.userSelected)
       }
-      this.$emit('card-select-change', this.selected)
     }
   }
 }

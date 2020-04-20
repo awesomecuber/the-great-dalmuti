@@ -9,15 +9,16 @@
           <br v-if="index !== lastMoves.length - 1" />
         </span>
       </p>
-      <b>This trick led by: </b> {{ trickLead }}
+      <b>This trick led by: </b> {{ gameState.trickLead }}
     </div>
     <div class="margin">
       <p><b>Standings:</b></p>
       <p class="left">
         <span v-for="(user, index) in users" :key="index">
           <b>{{ index + 1 }}. </b><tt>{{ getRole(index) }}</tt>
-          {{ user.name }} [<b>{{ user.cards.length }}</b
+          {{ user.name }} [<b>{{ user.cardCount }}</b
           >] <i v-if="user.left"> (user left)</i>
+          <!-- show if a user won -->
           <br v-if="index !== lastMoves.length - 1" />
         </span>
       </p>
@@ -26,13 +27,14 @@
 </template>
 
 <script>
+import { mapState } from 'vuex'
+
 export default {
   name: 'InfoArea',
   props: {
-    lastMoves: Array,
-    trickLead: String,
-    users: Array
+    lastMoves: Array
   },
+  computed: mapState(['users', 'gameState', 'userState']),
   methods: {
     getRole(index) {
       if (index === 0) {

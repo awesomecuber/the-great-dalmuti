@@ -22,7 +22,7 @@ interface User {
   left: boolean
   won: number // 0 is not yet, 1 is first place, 2 is second place, etc
   cards: number[] // hopefully i can restrict it to be 1-13 or something
-  taxCards: number[]
+  taxCardIndexes: number[]
   taxSubmitted: boolean
 }
 
@@ -80,7 +80,7 @@ io.on('connection', socket => {
       left: false,
       won: 0,
       cards: [],
-      taxCards: [],
+      taxCardIndexes: [],
       taxSubmitted: false
     })
     socket.join(room.name)
@@ -150,7 +150,7 @@ io.on('connection', socket => {
     }
   })
 
-  socket.on('select-tax', (roomName: string, selectedCards: number[]) => {
+  socket.on('select-tax', (roomName: string, selectedCardIndexes: number[]) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
     if (user && !user.taxSubmitted) {
@@ -158,18 +158,18 @@ io.on('connection', socket => {
       if (
         index === 0 &&
         !user.taxSubmitted &&
-        selectedCards.length === 2
+        selectedCardIndexes.length === 2
       ) {
         user.taxSubmitted = true
-        user.taxCards = selectedCards
+        user.taxCardIndexes = selectedCardIndexes
         emitUserState(user)
       } else if (
         index === 1 &&
         !user.taxSubmitted &&
-        selectedCards.length === 1
+        selectedCardIndexes.length === 1
       ) {
         user.taxSubmitted = true
-        user.taxCards = selectedCards
+        user.taxCardIndexes = selectedCardIndexes
         emitUserState(user)
       }
 
@@ -182,9 +182,10 @@ io.on('connection', socket => {
     }
   })
 
-  socket.on('play-hand', (roomName: string, selectedCards: number[]) => {
+  socket.on('play-hand', (roomName: string, selectedCardIndexes: number[]) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
+    let selectedCards = indexesToCards(user, selectedCardIndexes)
 
     if (user && room.currentPlayer === user.name) {
       let uniqueCards = [...new Set(selectedCards)]
@@ -312,7 +313,7 @@ function emitUserState(user: User) {
     name: user.name,
     cards: user.cards,
     taxSubmitted: user.taxSubmitted,
-    taxCards: user.taxCards
+    taxCardIndexes: user.taxCardIndexes
   }
   io.to(user.socketID).emit('user-state-update', userState)
 }
@@ -377,15 +378,15 @@ function startTax(room: Room) {
   room.users.forEach((user, i) => {
     if (i === room.users.length - 1) {
       // greater pion
-      user.taxCards = user.cards.slice(0, 2)
+      user.taxCardIndexes = [0, 1]
       user.taxSubmitted = true
     } else if (i === room.users.length - 2) {
       // lesser pion
-      user.taxCards = user.cards.slice(0, 1)
+      user.taxCardIndexes =[0]
       user.taxSubmitted = true
     } else if (i >= 2) {
       // merchants
-      user.taxCards = []
+      user.taxCardIndexes = []
       user.taxSubmitted = true
     }
   })
@@ -406,12 +407,15 @@ function taxSelected(room: Room) {
 
 function tradeTax(a: User, b: User) {
   // remove tax cards from users
-  removeCards(a, a.taxCards)
-  removeCards(b, b.taxCards)
+  let aTaxCards = indexesToCards(a, a.taxCardIndexes)
+  let bTaxCards = indexesToCards(b, b.taxCardIndexes)
+
+  removeCards(a, aTaxCards)
+  removeCards(b, bTaxCards)
 
   // give cards to the other
-  a.cards.push(...b.taxCards)
-  b.cards.push(...a.taxCards)
+  a.cards.push(...bTaxCards)
+  b.cards.push(...aTaxCards)
 
   // sort hands
   a.cards.sort(CARD_ORDER)
@@ -439,7 +443,7 @@ function restart(room: Room) {
     user.cards = []
     user.ready = false
     user.taxSubmitted = false
-    user.taxCards = []
+    user.taxCardIndexes = []
     user.won = 0
   })
 
@@ -477,6 +481,10 @@ function getUserByRoom(room: Room, socketID: string): User {
     }
   })
   return null
+}
+
+function indexesToCards(user: User, indexes: number[]) {
+  return indexes.map(index => user.cards[index])
 }
 
 function shuffle(a: any[]) {
