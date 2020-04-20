@@ -2,13 +2,13 @@
   <div class="home">
     <center>
       <h3>Rooms:</h3>
-      <div class="room" v-for="(room, index) in roomList" :key="index">
+      <div class="room" v-for="(room, index) in rooms" :key="index">
         <button :disabled="room.state !== 'LOBBY'" @click="join(room.name)">
           {{ room.name }}
           <span v-if="room.state !== 'LOBBY'"> (started)</span>
         </button>
         <button @click="remove(room.name)">remove!</button>
-        <p>online: {{ roomList.playerCount }}</p>
+        <p>online: {{ rooms.playerCount }}</p>
       </div>
       <form @submit.prevent="create">
         <input type="text" v-model="newRoom" />
@@ -28,7 +28,7 @@ export default {
       newRoom: ''
     }
   },
-  computed: mapState(['roomList']),
+  computed: mapState(['rooms']),
   methods: {
     create() {
       if (this.newRoom !== '') {

@@ -5,9 +5,10 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    roomList: [],
-    userList: [],
+    rooms: [],
+    users: [],
     gameState: {
+      roomName: '',
       state: '',
       currentPlayer: '',
       trickLead: '',
@@ -16,6 +17,7 @@ export default new Vuex.Store({
       revolutionTime: 0
     },
     userState: {
+      name: '',
       cards: [],
       taxSubmitted: false,
       taxCards: []
@@ -23,10 +25,14 @@ export default new Vuex.Store({
   },
   mutations: {
     SET_ROOM_LIST(state, roomList) {
-      state.roomList = roomList
+      state.rooms = roomList
+
     },
     SET_USER_LIST(state, userList) {
-      state.userList = userList
+      state.users = userList
+    },
+    SET_ROOM_NAME(state, roomName) {
+      state.gameState.roomName = roomName
     },
     SET_GAME_PHASE(state, phase) {
       state.gameState.state = phase
@@ -48,23 +54,51 @@ export default new Vuex.Store({
     },
     SET_NAME(state, name) {
       state.userState.name = name
-    }
+    },
     SET_CARDS(state, cards) {
       state.userState.cards = cards
     },
     SET_TAX_INFO(state, taxInfo) {
       state.userState.taxSubmitted = taxInfo.taxSubmitted
       state.userState.taxCards = taxInfo.taxCards
+    },
+    RESET_GAME_STATE(state) {
+      state.gameState.roomName = ''
+      state.gameState.state = ''
+      state.gameState.currentPlayer = ''
+      state.gameState.trickLead = ''
+      state.gameState.currentCard = 0
+      state.gameState.currentCardCount = 0
+      state.gameState.revolutionTime = 0
+    },
+    RESET_USER_STATE(state) {
+      state.userState.name = ''
+      state.userState.cards = []
+      state.userState.taxSubmitted = false
+      state.userState.taxCards = []
     }
   },
   actions: {
-    updateRoomList({ commit }, roomList) {
+    updateRoomList({ commit, state }, roomList) {
       commit('SET_ROOM_LIST', roomList)
+      if (!roomList.includes(state.gameState.roomName)) {
+        // room deleted
+        commit('RESET_GAME_STATE')
+        commit('RESET_USER_STATE')
+      }
     },
-    updateUserList({ commit }, userList) {
+    updateUserList({ commit, state }, userList) {
       commit('SET_USER_LIST', userList)
+      if (!userList.includes(state.userState.roomName)) {
+        // user removed
+        commit('RESET_GAME_STATE')
+        commit('RESET_USER_STATE')
+      }
     },
     updateGameState({ commit, state }, gameState) {
+      if (state.gameState.roomName !== gameState.roomName) {
+        commit('SET_ROOM_NAME', gameState.roomName)
+      }
       if (state.gameState.state !== gameState.state) {
         commit('SET_GAME_PHASE', gameState.state)
       }

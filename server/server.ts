@@ -296,6 +296,7 @@ function emitUserList(room: Room) {
 
 function emitGameState(room: Room) {
   let gameState = {
+    roomName: room.name,
     state: room.state,
     currentPlayer: room.currentPlayer,
     trickLead: room.trickLead,

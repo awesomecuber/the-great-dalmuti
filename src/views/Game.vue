@@ -55,14 +55,14 @@ export default {
   },
   computed: {
     playerRole: function() {
-      let rank = this.userList.map(user => user.name).indexOf(this.userState.name)
+      let rank = this.users.map(user => user.name).indexOf(this.userState.name)
       if (rank === 0) {
         return 'GD'
       } else if (rank === 1) {
         return 'LD'
-      } else if (rank === this.userList.length - 2) {
+      } else if (rank === this.users.length - 2) {
         return 'LP'
-      } else if (rank === this.userList.length - 1) {
+      } else if (rank === this.users.length - 1) {
         return 'GP'
       } else {
         return 'M'
@@ -75,16 +75,16 @@ export default {
         case 'TAX':
           if (this.playerRole === 'GD') {
             return `Tax stage: Pick 2 cards to give to ${
-              this.userList[this.userList.length - 1].name
+              this.users[this.users.length - 1].name
             }`
           } else if (this.playerRole === 'LD') {
             return `Tax stage: Pick 1 card to give to ${
-              this.userList[this.userList.length - 2].name
+              this.users[this.users.length - 2].name
             }`
           } else if (this.playerRole === 'LP') {
-            return `Tax stage: Your lowest card will be given to ${this.userList[1].name}`
+            return `Tax stage: Your lowest card will be given to ${this.users[1].name}`
           } else if (this.playerRole === 'GP') {
-            return `Tax stage: Your 2 lowest cards will be given to ${this.userList[0].name}`
+            return `Tax stage: Your 2 lowest cards will be given to ${this.users[0].name}`
           } else {
             // merchant
             return 'Tax stage: Sit tight while others trade!'
@@ -149,13 +149,13 @@ export default {
       }
     },
     // taxSubmitted: function() {
-    //   let index = this.userList.map(user => user.name).indexOf(this.userState.name)
+    //   let index = this.users.map(user => user.name).indexOf(this.userState.name)
     //   if (index !== -1) {
     //     return this.user[index].taxCards
     //   }
     //   return []
     // },
-    ...mapState(['userList', 'gameState', 'userState'])
+    ...mapState(['users', 'gameState', 'userState'])
   },
   mounted() {
     // // checking if current room was deleted

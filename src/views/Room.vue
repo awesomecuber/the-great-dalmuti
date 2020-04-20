@@ -13,19 +13,19 @@
         </h2>
       </div>
       <hr />
-      <router-view @name-set="setName" />
+      <router-view />
     </center>
   </div>
 </template>
 
 <script>
+import { mapState } from 'vuex'
+
 export default {
   name: 'Room',
-  data() {
-    return {
-      name: ''
-    }
-  },
+  computed: mapState({
+    name: state => state.userState.name
+  }),
   beforeMount() {
     window.onbeforeunload = () => {
       this.$socket.emit('user-left', this.$route.params.room)
@@ -35,9 +35,6 @@ export default {
     leave() {
       this.$socket.emit('user-left', this.$route.params.room)
       this.$router.push('/home')
-    },
-    setName(name) {
-      this.name = name
     }
   }
 }
