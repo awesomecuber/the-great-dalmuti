@@ -10,6 +10,7 @@
     "surge": "npm run build&&surge dist nico-chat-rooms.surge.sh"
   },
   "dependencies": {
+    "@types/node": "^13.13.1",
     "core-js": "^3.6.4",
     "socket.io": "^2.3.0",
     "vue": "^2.6.11",
