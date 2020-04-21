@@ -37,7 +37,6 @@ export default {
       }
     },
     join(room) {
-      this.$socket.emit('enter-room', room)
       this.$router.push('/room/' + room + '/lobby')
     },
     remove(room) {

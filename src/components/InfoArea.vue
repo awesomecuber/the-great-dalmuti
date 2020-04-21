@@ -15,9 +15,11 @@
       <p><b>Standings:</b></p>
       <p class="left">
         <span v-for="(user, index) in users" :key="index">
-          <b>{{ index + 1 }}. </b><tt>{{ getRole(index) }}</tt>
-          {{ user.name }} [<b>{{ user.cardCount }}</b
-          >] <i v-if="user.left"> (user left)</i>
+          <b>{{ index + 1 }}. </b>
+          <tt>{{ getRole(index) }} </tt>
+          <span :style="nameStyle(user)">{{ user.name }}</span>
+          [<b>{{ user.cardCount }}</b>]
+          ({{ inParantheses(user) }})
           <!-- show if a user won -->
           <br v-if="index !== lastMoves.length - 1" />
         </span>
@@ -47,6 +49,33 @@ export default {
         return 'GP'
       } else {
         return 'M'
+      }
+    },
+    nameStyle(user) {
+      if (user.name === this.gameState.trickLead && user.name === this.gameState.currentPlayer) {
+        return {
+          color: 'red',
+          fontWeight: 'bold'
+        }
+      } else if (user.name === this.gameState.trickLead) {
+        return {
+          color: 'green',
+          fontWeight: 'bold'
+        }
+      } else if (user.name === this.gameState.currentPlayer) {
+        return {
+          color: 'black',
+          fontWeight: 'bold'
+        }
+      }
+    },
+    inParantheses(user) {
+      if (user.left) {
+        return 'user left'
+      } else if (user.won > 0) {
+        return 'won! place: ' + user.won
+      } else {
+        return 'still playing'
       }
     }
   }

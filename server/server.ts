@@ -47,7 +47,7 @@ let rooms: Room[] = []
 
 io.on('connection', socket => {
   socket.on('create-room', (roomName: string) => {
-    if (!rooms.map(room => room.name).includes(roomName)) { // dumb
+    if (!rooms.map(room => room.name).includes(roomName)) {
       rooms.push({
         name: roomName,
         trickLead: '',
@@ -110,7 +110,17 @@ io.on('connection', socket => {
       if (room.users.map(user => user.socketID).includes(socket.id)) {
         if (room.state === GameState.Play) {
           user.left = true
-          // TODO: if the player is the trick lead and current player, pass trick lead to next person
+          let index = room.users.indexOf(user)
+          let nextIndex = index === room.users.length - 1 ? 0 : index + 1
+          while (room.users[nextIndex].left || room.users[nextIndex].won > 0) {
+            nextIndex = nextIndex + 1 === room.users.length ? 0 : nextIndex + 1
+          }
+          if (room.trickLead === user.name && room.currentPlayer === user.name) {
+            room.trickLead = room.users[nextIndex].name
+            room.currentPlayer = room.users[nextIndex].name
+          } else if (room.currentPlayer === user.name) {
+            room.currentPlayer = room.users[nextIndex].name
+          }
         } else {
           room.users = room.users.filter(user => user.socketID !== socket.id)
           if (room.state === GameState.Tax) {
@@ -267,20 +277,26 @@ io.on('connection', socket => {
   socket.on('pass-turn', (roomName: string) => {
     let room = getRoom(roomName)
     let user = getUserByRoom(room, socket.id)
-    // we're increasing nextIndex until we hit either:
-    // - a player who hasn't left and hasn't won
-    // - a player who is the trick lead
+
     if (user && room.currentPlayer === user.name && room.trickLead !== user.name) {
       let index = room.users.indexOf(user)
       let nextIndex = index === room.users.length - 1 ? 0 : index + 1
+      let reachTrickLeader = false
+      if (room.trickLead === room.users[nextIndex].name) {
+        reachTrickLeader = true
+      }
       while (room.users[nextIndex].left || room.users[nextIndex].won > 0) {
         nextIndex = nextIndex + 1 === room.users.length ? 0 : nextIndex + 1
+        if (room.trickLead === room.users[nextIndex].name) {
+          reachTrickLeader = true
+        }
       }
       room.currentPlayer = room.users[nextIndex].name
-      if (room.currentPlayer === room.trickLead) {
+      if (reachTrickLeader) {
         // trick won
         room.currentCard = 0
         room.currentCardCount = 0
+        room.trickLead = room.currentPlayer
       }
       emitGameState(room)
     } else {
@@ -352,6 +368,9 @@ function startGame(room: Room) {
   if (room.users.length === 4) maxCard = 10
   else if (room.users.length === 5) maxCard = 11
   else maxCard = 12
+
+  // FOR TESTING
+  //maxCard = 3
 
   for (let i = 1; i <= maxCard; i++) {
     for (let j = 0; j < i; j++) {
@@ -425,6 +444,7 @@ function taxSelected(room: Room) {
 
   room.state = GameState.Play
   room.currentPlayer = gd.name
+  room.trickLead = room.currentPlayer
 }
 
 function tradeTax(a: User, b: User) {

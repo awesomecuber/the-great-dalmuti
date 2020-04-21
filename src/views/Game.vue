@@ -148,7 +148,8 @@ export default {
     },
     roomName: function() {
       return this.gameState.roomName
-    }
+    } // need to watch roomList in general
+    // also, might as well move it to Room.vue
   },
   watch: {
     state: function(newState) {

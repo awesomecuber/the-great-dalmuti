@@ -7,7 +7,6 @@
       <p v-if="user.name === userState.name">
         <b>{{ user.name }} </b>
         <button @click="toggleReady">ready: {{ ready ? 'yes' : 'no' }}</button>
-        <button @click="remove">remove from lobby</button>
       </p>
       <p v-else>
         {{ user.name }}
@@ -67,11 +66,6 @@ export default {
       if (newName === '') {
         this.$router.push('/home')
       }
-    },
-    rooms: function(newRooms) {
-      if (!newRooms.map(room => room.name).includes(this.$route.params.room)) {
-        this.$router.push('/home')
-      }
     }
   },
   methods: {
@@ -88,12 +82,12 @@ export default {
       // might not need to pass ready as a parameter...
     },
     remove() {
-      this.$socket.emit('user-left', this.$route.params.room)
+      this.$socket.emit('quit-room', this.$route.params.room)
     }
   },
   beforeRouteLeave(to, from, next) {
     if (to.path === '/home') {
-      this.$socket.emit('user-left', this.$route.params.room)
+      this.$socket.emit('leave-room', this.$route.params.room)
       next()
     } else if (this.gameStarted) {
       next()

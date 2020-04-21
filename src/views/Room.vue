@@ -27,6 +27,7 @@ export default {
     name: state => state.userState.name
   }),
   beforeMount() {
+    this.$socket.emit('enter-room', this.$route.params.room)
     window.onbeforeunload = () => {
       this.$socket.emit('leave-room', this.$route.params.room)
     }
