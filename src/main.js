@@ -8,7 +8,7 @@ Vue.config.productionTip = false
 
 let socket = io(
   process.env.NODE_ENV === 'production'
-    ? 'doesntexistyet.com'
+    ? 'https://great-dalmuti-socket.herokuapp.com/'
     : 'http://localhost:3000'
 )
 
