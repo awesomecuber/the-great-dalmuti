@@ -1,8 +1,6 @@
 <template>
-  <div>
-    <p>Once everyone is ready, the game will start</p>
-    <br />
-    <h3>Users:</h3>
+  <div class="box">
+    <h2 class="title">User List</h2>
     <div v-for="(user, index) in users" :key="index">
       <p v-if="user.name === userState.name">
         <b>{{ user.name }} </b>
@@ -32,47 +30,49 @@ export default {
   data() {
     return {
       nickInput: '',
-      gameStarted: false // used to prevent the next(false)
+      gameStarted: false, // used to prevent the next(false)
     }
   },
   computed: {
     ...mapState(['rooms', 'users', 'gameState', 'userState']),
-    state: function() {
+    state: function () {
       return this.gameState.state
     },
-    roomName: function() {
+    roomName: function () {
       return this.gameState.roomName
     },
-    loggedIn: function() {
+    loggedIn: function () {
       return this.userState.name !== ''
     },
-    ready: function() {
-      let index = this.users.map(user => user.name).indexOf(this.userState.name)
+    ready: function () {
+      let index = this.users
+        .map((user) => user.name)
+        .indexOf(this.userState.name)
       if (index === -1) {
         return false
       } else {
         return this.users[index].ready
       }
-    }
+    },
   },
   watch: {
-    state: function(newState) {
+    state: function (newState) {
       if (newState !== 'LOBBY') {
         this.gameStarted = true
         this.$router.push('/room/' + this.$route.params.room + '/game')
       }
     },
-    roomName: function(newName) {
+    roomName: function (newName) {
       if (newName === '') {
         this.$router.push('/home')
       }
-    }
+    },
   },
   methods: {
     nick() {
       if (
         this.nickInput !== '' &&
-        !this.users.map(user => user.name).includes(this.nickInput)
+        !this.users.map((user) => user.name).includes(this.nickInput)
       ) {
         this.$socket.emit('join-room', this.$route.params.room, this.nickInput)
       }
@@ -83,7 +83,7 @@ export default {
     },
     remove() {
       this.$socket.emit('quit-room', this.$route.params.room)
-    }
+    },
   },
   beforeRouteLeave(to, from, next) {
     if (to.path === '/home') {
@@ -94,8 +94,8 @@ export default {
     } else {
       next(false)
     }
-  }
+  },
 }
 </script>
 
-<style></style>
+<style scoped></style>

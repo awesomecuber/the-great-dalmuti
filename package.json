@@ -6,9 +6,12 @@
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "publish": "vue-cli-service build&&surge dist marioingo.surge.sh",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "bulma-css-vars": "bulma-css-vars"
   },
   "dependencies": {
+    "buefy": "^0.9.4",
+    "bulma-css-vars": "^0.5.6",
     "core-js": "^3.6.5",
     "socket.io": "^2.3.0",
     "vue": "^2.6.12",
@@ -25,6 +28,9 @@
     "babel-eslint": "^10.0.3",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.1.2",
+    "node-sass": "^5.0.0",
+    "sass": "^1.29.0",
+    "sass-loader": "^10.1.0",
     "vue-template-compiler": "^2.6.12"
   },
   "eslintConfig": {

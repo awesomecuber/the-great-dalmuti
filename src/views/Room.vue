@@ -1,30 +1,32 @@
 <template>
   <div class="room">
-    <button @click="leave" id="leave">
-      <h2 style="margin: 5px;">Go Home</h2>
-    </button>
     <center>
-      <div class="header">
-        <h1 style="margin-bottom: 0px; margin-top: 0px;">The Great Dalmuti</h1>
-        <h2 style="margin: 0px;">
-          Room: {{ $route.params.room
-          }}<span v-if="name !== ''"> | Your Name: {{ name }}</span>
-          <!-- TODO: also show role (Lesser Peon, Merchant, etc) -->
-        </h2>
+      <div class="column is-one-third">
+        <div class="header">
+          <div class="box">
+            <h1 class="title" style="margin-bottom: 0px; margin-top: 10px">
+              The Great Dalmuti
+            </h1>
+            <h2 style="margin: 5px">
+              Room: {{ $route.params.room
+              }}<span v-if="name !== ''"> | Your Name: {{ name }}</span>
+              <!-- TODO: also show role (Lesser Peon, Merchant, etc) -->
+            </h2>
+          </div>
+        </div>
       </div>
       <hr />
       <router-view />
     </center>
   </div>
 </template>
-
 <script>
 import { mapState } from 'vuex'
 
 export default {
   name: 'Room',
   computed: mapState({
-    name: state => state.userState.name
+    name: (state) => state.userState.name,
   }),
   beforeMount() {
     this.$socket.emit('enter-room', this.$route.params.room)
@@ -37,8 +39,8 @@ export default {
       this.$socket.emit('leave-room', this.$route.params.room)
       this.$store.dispatch('resetState')
       this.$router.push('/home')
-    }
-  }
+    },
+  },
 }
 </script>
 
