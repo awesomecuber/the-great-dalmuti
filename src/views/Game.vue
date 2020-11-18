@@ -92,8 +92,9 @@ export default {
           }
         case 'PLAY':
           return `It is <b>${this.gameState.currentPlayer}</b>'s turn.`
+        default:
+          return 'Something went wrong. Report issues here: https://github.com/awesomecuber/the-great-dalmuti/issues'
       }
-      return 'UHHH'
     },
     mainButtonText: function() {
       switch (this.gameState.state) {
@@ -103,8 +104,9 @@ export default {
           return 'Trade'
         case 'PLAY':
           return 'Play'
+        default:
+          return 'Something went wrong. Report issues here: https://github.com/awesomecuber/the-great-dalmuti/issues'
       }
-      return 'UHHH'
     },
     mainButtonDisabled: function() {
       switch (this.gameState.state) {

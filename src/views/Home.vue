@@ -19,17 +19,23 @@
                 <tr v-for="(room, index) in rooms" :key="index">
                   <th align="center">#{{ index + 1 }}</th>
                   <td align="center">
-                    <button class="button is-success is-small" :disabled="!room.joinable" @click="join(room.name)">
-                    {{ room.name }}
-                    <span v-if="!room.joinable"> (In Progress)</span>
+                    <button
+                      class="button is-success is-small"
+                      :disabled="!room.joinable"
+                      @click="join(room.name)"
+                    >
+                      {{ room.name }}
+                      <span v-if="!room.joinable"> (In Progress)</span>
                     </button>
                   </td>
                   <td align="center">
-                    <button class="delete" @click="remove(room.name)">Delete room</button>
+                    <button class="delete" @click="remove(room.name)">
+                      Delete room
+                    </button>
                   </td>
                   <td align="center">
                     <p>{{ room.playerCount }}</p>
-                  </td>   
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -37,12 +43,15 @@
           <h1 class="subtitle">Open a new room:</h1>
           <div class="field has-addons has-addons-centered">
             <div class="control">
-              <input class="input is-primary" type="text" placeholder="Room name" v-model="newRoom" />
+              <input
+                class="input is-primary"
+                type="text"
+                placeholder="Room name"
+                v-model="newRoom"
+              />
             </div>
             <div class="control">
-              <a class="button is-info" @click="create">
-                Create
-              </a>
+              <a class="button is-info" @click="create"> Create </a>
             </div>
           </div>
         </div>
@@ -58,7 +67,7 @@ export default {
   name: 'Home',
   data() {
     return {
-      newRoom: ''
+      newRoom: '',
     }
   },
   computed: mapState(['rooms']),
@@ -74,8 +83,8 @@ export default {
     },
     remove(room) {
       this.$socket.emit('remove-room', room)
-    }
-  }
+    },
+  },
 }
 </script>
 
